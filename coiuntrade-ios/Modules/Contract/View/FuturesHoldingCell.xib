@@ -158,6 +158,13 @@
                         <color key="textColor" red="0.0078431372549019607" green="0.75294117647058822" blue="0.47058823529411764" alpha="1" colorSpace="calibratedRGB"/>
                         <nil key="highlightedColor"/>
                     </label>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Veh-j0-bZh">
+                        <rect key="frame" x="15" y="251" width="348" height="1"/>
+                        <color key="backgroundColor" red="0.21176470588235294" green="0.21176470588235294" blue="0.21176470588235294" alpha="1" colorSpace="calibratedRGB"/>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="1" id="Jb1-G2-a4O"/>
+                        </constraints>
+                    </view>
                     <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" spacing="14" translatesAutoresizingMaskIntoConstraints="NO" id="RcR-D8-dXb">
                         <rect key="frame" x="15" y="202" width="348" height="30"/>
                         <subviews>
@@ -201,16 +208,19 @@
                 <constraints>
                     <constraint firstAttribute="trailing" secondItem="1cc-h9-Dty" secondAttribute="trailing" constant="15" id="1dB-n0-c9E"/>
                     <constraint firstItem="feV-fF-Jls" firstAttribute="centerY" secondItem="HTC-yq-Q1g" secondAttribute="centerY" id="6xe-fD-lLg"/>
+                    <constraint firstItem="Veh-j0-bZh" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" constant="15" id="7Jh-D6-Fih"/>
                     <constraint firstItem="ozv-iG-AmI" firstAttribute="centerY" secondItem="asl-kP-1C2" secondAttribute="centerY" id="7fB-Gs-nFO"/>
                     <constraint firstItem="CgF-so-asp" firstAttribute="centerY" secondItem="kP3-7d-gsF" secondAttribute="centerY" id="83n-Cz-g7k"/>
                     <constraint firstAttribute="trailing" secondItem="RcR-D8-dXb" secondAttribute="trailing" constant="15" id="8fs-QF-ThT"/>
                     <constraint firstItem="Wpg-yW-yIc" firstAttribute="centerY" secondItem="vdp-up-qCi" secondAttribute="centerY" id="8og-59-PMC"/>
                     <constraint firstItem="vj8-c1-LvI" firstAttribute="top" secondItem="HTC-yq-Q1g" secondAttribute="bottom" constant="3" id="AaS-ma-D1K"/>
+                    <constraint firstAttribute="bottom" secondItem="Veh-j0-bZh" secondAttribute="bottom" id="BG1-Gu-Rpr"/>
                     <constraint firstItem="i9G-x2-q9T" firstAttribute="centerY" secondItem="kP3-7d-gsF" secondAttribute="centerY" id="CN6-IE-tZ7"/>
                     <constraint firstItem="f1i-ek-AQv" firstAttribute="centerY" secondItem="OKa-wy-YAa" secondAttribute="centerY" id="Fkl-4w-lI1"/>
                     <constraint firstItem="asl-kP-1C2" firstAttribute="top" secondItem="kP3-7d-gsF" secondAttribute="bottom" constant="3" id="Gkm-t5-xeW"/>
                     <constraint firstItem="OKa-wy-YAa" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" constant="15" id="HAh-Fw-88h"/>
                     <constraint firstItem="7w7-nK-4FB" firstAttribute="leading" secondItem="CgF-so-asp" secondAttribute="leading" id="IKI-VD-tdY"/>
+                    <constraint firstAttribute="trailing" secondItem="Veh-j0-bZh" secondAttribute="trailing" constant="15" id="K6f-cv-rjY"/>
                     <constraint firstItem="6vd-hl-Mof" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" constant="15" id="KsO-jJ-uVJ"/>
                     <constraint firstItem="vdp-up-qCi" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" constant="15" id="Ld0-O0-0ct"/>
                     <constraint firstAttribute="trailing" secondItem="SFA-Iu-bYu" secondAttribute="trailing" id="MWj-tr-AzE"/>
@@ -264,8 +274,8 @@
                 <outlet property="shareBtn" destination="SFA-Iu-bYu" id="OPA-PO-oxG"/>
                 <outlet property="strongLabel" destination="nB7-kK-oAS" id="0O8-Mn-kSj"/>
                 <outlet property="strongTitleLabel" destination="J5u-Oa-9Ev" id="yyF-Dq-rPl"/>
-                <outlet property="unrealizedPLLabel" destination="HTC-yq-Q1g" id="27W-vG-Vij"/>
-                <outlet property="unrealizedPTitleLLabel" destination="vj8-c1-LvI" id="TGD-uN-cJS"/>
+                <outlet property="unrealizedPLLabel" destination="vj8-c1-LvI" id="0td-ia-MJO"/>
+                <outlet property="unrealizedPTitleLLabel" destination="HTC-yq-Q1g" id="AwA-Ph-bfJ"/>
                 <outletCollection property="titleViews" destination="HTC-yq-Q1g" collectionClass="NSMutableArray" id="X3P-tP-SlV"/>
                 <outletCollection property="titleViews" destination="feV-fF-Jls" collectionClass="NSMutableArray" id="kYz-bJ-xQb"/>
                 <outletCollection property="titleViews" destination="kP3-7d-gsF" collectionClass="NSMutableArray" id="Jg4-p9-F3o"/>
@@ -279,6 +289,10 @@
                 <outletCollection property="normalValueViews" destination="OKa-wy-YAa" collectionClass="NSMutableArray" id="sKC-k0-FQw"/>
                 <outletCollection property="normalValueViews" destination="f1i-ek-AQv" collectionClass="NSMutableArray" id="LoZ-8a-OVJ"/>
                 <outletCollection property="normalValueViews" destination="nB7-kK-oAS" collectionClass="NSMutableArray" id="SjX-eI-Nqi"/>
+                <outletCollection property="btnViews" destination="lrK-tK-oPj" collectionClass="NSMutableArray" id="1LJ-y2-1ft"/>
+                <outletCollection property="btnViews" destination="TDB-Lq-Kg4" collectionClass="NSMutableArray" id="BB7-lK-U4a"/>
+                <outletCollection property="btnViews" destination="X8p-9k-1F1" collectionClass="NSMutableArray" id="O09-o7-Kow"/>
+                <outletCollection property="normalValueViews" destination="1cc-h9-Dty" collectionClass="NSMutableArray" id="UmI-sg-tEt"/>
             </connections>
             <point key="canvasLocation" x="155.07246376811597" y="56.25"/>
         </tableViewCell>

@@ -43,7 +43,7 @@ class FuturesTradeController: BaseViewController {
         tableView.backgroundColor = .hexColor("1E1E1E")
 //        tableView.tableFooterView = footerView
         tableView.tableHeaderView?.backgroundColor = .hexColor("1E1E1E")
-
+        tableView.separatorStyle = .none
         tableView.tableFooterView?.height = CGFloat(kScreenHeight - TOP_HEIGHT - TABBAR_HEIGHT - 39)
         return tableView
     }()
