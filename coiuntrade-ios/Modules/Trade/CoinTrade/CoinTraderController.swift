@@ -50,21 +50,26 @@ class CoinTraderController: BaseViewController {
         setupInit()
         
         self.tradeTableView.nomalMJHeaderRefresh {
-
             print("refresh")
             if userManager.isLogin {
-                
                 _ =  self.tradeModel.requestSymbolAsset()
                 self.reloadEntrust()
-
             }else {
-                
                 self.tradeTableView.endMJRefresh()
             }
-
         }
-
+        reqData()
     }
+    
+    func reqData(){
+        
+        self.marketsViewModel.requestMarketKline().subscribe(onNext: {[weak self] model in
+            self!.kLineView.updateSecondHeight()
+            self!.kLineView.configureView(data: self!.marketsViewModel.kLineList, isNew: true, mainDrawString: KLINEMA, secondDrawString: KLINEHIDE, dateType: self!.dateType, lineType:(self!.marketsViewModel.reqModel.kline_type == "1m") ? .minLineType : .candleLineType)
+        }).disposed(by: disposeBag)
+        marketsViewModel.websocketKline()
+    }
+    
     func setupInit(){
         rModel.coin = "BTC"
         rModel.currency = "USDT"
@@ -76,7 +81,6 @@ class CoinTraderController: BaseViewController {
         dealWithSocekt()
         
         tradeModel.reqModel = rModel
-        marketsViewModel.websocketKline()
         NotificationCenter.default.addObserver(self, selector: #selector (signoutNoti), name: SignoutSuccessNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateShowCoin), name: Notification.Name("CoinAssetsUpdateKey"), object: nil)
     }
@@ -126,22 +130,9 @@ class CoinTraderController: BaseViewController {
         //点击展开K线
 
         moreBtn.rx.tap
-            .flatMap({ value -> Observable<Any>  in
-                print("请求k线数据")
-                self.marketsViewModel.reqModel.kline_type = "15m" //读取数据库
-                return self.marketsViewModel.requestMarketKline().catch { error in
-                    return Observable.empty()
-                }
-            })
-            .subscribe(onNext: { [self]value in
+            .subscribe(onNext: {
                 self.isShowKline = !self.isShowKline
                 moreBtn.isSelected = self.isShowKline
-                //加载k线
-                self.kLineView.theme.bottomChartHeight = 0
-                self.kLineView.topChartTextLayer.theme.bottomChartHeight = 0
-                self.kLineView.bottomChartTextLayer.theme.bottomChartHeight = 0
-                self.kLineView.kLine.theme.bottomChartHeight = 0
-                self.kLineView.configureView(data: self.marketsViewModel.kLineList, isNew: true, mainDrawString: KLINEMA, secondDrawString: KLINEHIDE, dateType: .min, lineType: .candleLineType)
             }).disposed(by: disposeBag)
 
         let bottonLineView = UIView()
@@ -223,19 +214,22 @@ class CoinTraderController: BaseViewController {
                     return Observable.empty()
                 }
             })
-            .flatMap({ value -> Observable<CoinModel>  in
+            .flatMap({[weak self] value -> Observable<CoinModel>  in
                 
-                self.rModel.coin = value.coin
-                self.rModel.currency = value.currency
-                self.marketsViewModel.reqModel = self.rModel
-                self.marketsViewModel.reqModel.kline_type = "1m"
-                self.tradeModel.reqModel = self.rModel
+                let reqCoinM = ReqCoinModel()
+                reqCoinM.coin = value.coin
+                reqCoinM.currency = value.currency
+                reqCoinM.kline_type = self!.marketsViewModel.reqModel.kline_type
+                self!.rModel = reqCoinM
+                self!.marketsViewModel.reqModel = reqCoinM
+                self!.tradeModel.reqModel = reqCoinM
+                self!.reqData()
+                
+                self!.coinModel = value
+                self!.coinSymbolBtn.setTitle("\(value.coin)/\(value.currency)", for: .normal)
 
-                self.coinModel = value
-                self.coinSymbolBtn.setTitle("\(value.coin)/\(value.currency)", for: .normal)
-
-                _ =  self.tradeModel.requestSymbolAsset()
-                return self.marketsViewModel.requestCoinDetails().catch { error in
+                _ =  self!.tradeModel.requestSymbolAsset()
+                return self!.marketsViewModel.requestCoinDetails().catch { error in
                     return Observable.empty()
                 }
             })
@@ -413,7 +407,6 @@ class CoinTraderController: BaseViewController {
         
         let view = UIView()
         view.addSubview(littleKlineView)
-//        littleKlineView.backgroundColor = UIColor.red
         view.addSubview(operationView)
         operationView.pushClosure = {
             
@@ -708,7 +701,7 @@ class CoinTraderController: BaseViewController {
             btn.tag = idx
             timeView.addSubview(btn)
             self.timeBtnArray.append(btn)
-            if(idx == 2){
+            if(idx == 0){
                 btn.isSelected = true
             }
             idx += 1
@@ -784,12 +777,11 @@ extension CoinTraderController{
     
     func dealWithSocekt()  {
         
-        marketsViewModel.kLineData.subscribe(onNext: { value in
-            self.kLineView.theme.bottomChartHeight = 0
-            self.kLineView.topChartTextLayer.theme.bottomChartHeight = 0
-            self.kLineView.bottomChartTextLayer.theme.bottomChartHeight = 0
-            self.kLineView.kLine.theme.bottomChartHeight = 0
-            self.kLineView.configureView(data: self.marketsViewModel.kLineList, isNew: true, mainDrawString: KLINEMA, secondDrawString: KLINEHIDE, dateType: self.dateType, lineType: (self.marketsViewModel.reqModel.kline_type == "1m") ? .minLineType : .candleLineType)
+        marketsViewModel.kLineData.subscribe(onNext: {[weak self] value in
+            if(self!.isShowKline){
+                self!.kLineView.updateSecondHeight()
+                self!.kLineView.configureViewNoOffset(data: self!.marketsViewModel.kLineList, isNew: true, mainDrawString: KLINEMA, secondDrawString: KLINEHIDE, dateType: self!.dateType, lineType: (self!.marketsViewModel.reqModel.kline_type == "1m") ? .minLineType : .candleLineType)
+            }
         }).disposed(by: disposeBag)
     }
     func setupEvent(){
@@ -844,18 +836,17 @@ extension CoinTraderController{
                     self.marketsViewModel.reqModel.kline_type = "1m"
             }
         }
-        .flatMap({ value -> Observable<Any>  in
-            return self.marketsViewModel.requestMarketKline().catch { error in
+        .flatMap({[weak self] value -> Observable<Any>  in
+            
+            self!.marketsViewModel.websocketKline()
+            return self!.marketsViewModel.requestMarketKline().catch { error in
                 return Observable.empty()
             }
         })
-        .subscribe(onNext: {value in
+        .subscribe(onNext: {[weak self] value in
             
-            self.kLineView.theme.bottomChartHeight = 0
-            self.kLineView.topChartTextLayer.theme.bottomChartHeight = 0
-            self.kLineView.bottomChartTextLayer.theme.bottomChartHeight = 0
-            self.kLineView.kLine.theme.bottomChartHeight = 0
-            self.kLineView.configureView(data: self.marketsViewModel.kLineList, isNew: true, mainDrawString: KLINEMA , secondDrawString: KLINEHIDE, dateType: self.dateType, lineType: (self.marketsViewModel.reqModel.kline_type == "1m") ? .minLineType : .candleLineType)
+            self!.kLineView.updateSecondHeight()
+            self!.kLineView.configureView(data: self!.marketsViewModel.kLineList, isNew: true, mainDrawString: KLINEMA , secondDrawString: KLINEHIDE, dateType: self!.dateType, lineType: (self!.marketsViewModel.reqModel.kline_type == "1m") ? .minLineType : .candleLineType)
         }).disposed(by: disposeBag)
     }
 

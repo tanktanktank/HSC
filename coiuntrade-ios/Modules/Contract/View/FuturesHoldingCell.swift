@@ -11,6 +11,11 @@ fileprivate let redColor = UIColor.hexColor("FF4E4F")
 fileprivate let greenColor = UIColor.hexColor("02C078")
 
 class FuturesHoldingCell: UITableViewCell {
+    
+    var adjustClick : NormalBlock?
+    var stopPLClick : NormalBlock?
+    var closePositionClick : NormalBlock?
+
     @IBOutlet weak var shareBtn: UIButton!
     
     @IBOutlet weak var directionLabel: UILabel!
@@ -86,5 +91,19 @@ class FuturesHoldingCell: UITableViewCell {
 
         // Configure the view for the selected state
     }
+    
+    @IBAction func adjustBtnClick(_ sender: Any) {
+    
+        self.adjustClick?()
+    }
+    @IBAction func stopPLBtnClick(_ sender: Any) {
+    
+        self.stopPLClick?()
+    }
+    @IBAction func closePositionBtnClick(_ sender: Any) {
+        self.closePositionClick?()
+    }
+
+
     
 }

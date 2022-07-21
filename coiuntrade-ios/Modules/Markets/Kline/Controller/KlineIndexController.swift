@@ -24,6 +24,11 @@ class KlineIndexController: UIViewController,UITableViewDelegate, UITableViewDat
     var klineType : KlineIndex = .ma
     var viewModel: KlineSetViewModel!
     private var disposeBag = DisposeBag()
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.navigationController?.navigationBar.isHidden = true
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()

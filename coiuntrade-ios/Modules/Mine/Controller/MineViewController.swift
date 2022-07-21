@@ -7,6 +7,17 @@
 
 import UIKit
 
+enum MineViewMessageType {
+
+    case MineViewLoginType
+    case MineViewFriendType
+    case MineViewSafeType
+    case MineViewSettingType
+    case MineViewHelpType
+    case MineViewShareType
+    case MineViewAuthType
+}
+
 class MineViewController: BaseViewController {
     
     /// 懒加载
@@ -24,7 +35,10 @@ class MineViewController: BaseViewController {
     
     lazy var authCell : HomeAuthCell = HomeAuthCell(style: .default, reuseIdentifier: HomeAuthCell.CELLID)
     
-    var dataArray = [[["name":"tv_personal_safety".localized(),"icon":"mine_safe"],["name":"tv_personal_setting".localized(),"icon":"mine_setting"]],[["name":"tv_personal_help".localized(),"icon":"mine_help"],["name":"tv_personal_share".localized(),"icon":"mine_share"]],[["name":"认证中心","icon":"mine_safe"]]]
+    var dataArray = [[["name":"好友返佣","icon":"mine_safe","MineViewMessageType":MineViewMessageType.MineViewFriendType]],
+                     [["name":"tv_personal_safety".localized(),"icon":"mine_safe","MineViewMessageType":MineViewMessageType.MineViewSafeType],["name":"tv_personal_setting".localized(),"icon":"mine_setting","MineViewMessageType":MineViewMessageType.MineViewSettingType]],
+                     [["name":"tv_personal_help".localized(),"icon":"mine_help","MineViewMessageType":MineViewMessageType.MineViewHelpType],["name":"tv_personal_share".localized(),"icon":"mine_share","MineViewMessageType":MineViewMessageType.MineViewShareType]],
+                     [["name":"认证","icon":"mine_safe","MineViewMessageType":MineViewMessageType.MineViewAuthType]]]
     
     lazy var msgLab : UILabel = {
         let lab = UILabel()
@@ -74,7 +88,10 @@ class MineViewController: BaseViewController {
     @objc func changeLangage(){
         authCell.authLab.text = "tv_certified".localized()
         logoutBtn.setTitle("tv_personal_log_out".localized(), for: .normal)
-        self.dataArray = [[["name":"tv_personal_safety".localized(),"icon":"mine_safe"],["name":"tv_personal_setting".localized(),"icon":"mine_setting"]],[["name":"tv_personal_help".localized(),"icon":"mine_help"],["name":"tv_personal_share".localized(),"icon":"mine_share"]],[["name":"认证中心","icon":"mine_safe"]]]
+        self.dataArray = [[["name":"好友返佣","icon":"mine_safe","MineViewMessageType":MineViewMessageType.MineViewFriendType]],
+                          [["name":"tv_personal_safety".localized(),"icon":"mine_safe","MineViewMessageType":MineViewMessageType.MineViewSafeType],["name":"tv_personal_setting".localized(),"icon":"mine_setting","MineViewMessageType":MineViewMessageType.MineViewSettingType]],
+                          [["name":"tv_personal_help".localized(),"icon":"mine_help","MineViewMessageType":MineViewMessageType.MineViewHelpType],["name":"tv_personal_share".localized(),"icon":"mine_share","MineViewMessageType":MineViewMessageType.MineViewShareType]],
+                          [["name":"认证","icon":"mine_safe","MineViewMessageType":MineViewMessageType.MineViewAuthType]]]
         upDateUI()
     }
 }
@@ -189,9 +206,10 @@ extension MineViewController : UITableViewDelegate,UITableViewDataSource{
             let cell = tableView.dequeueReusableCell(withIdentifier: MineTableViewCell.CELLID, for: indexPath) as! MineTableViewCell
             let tmpArray = dataArray[indexPath.section-1]
             let dict  = tmpArray[indexPath.row]
-            cell.titleLab.text = dict["name"]
-            cell.iconView.image = UIImage(named: dict["icon"] ?? "")
-            if indexPath.section == 3 {
+            let mineMessageType = dict["MineViewMessageType"] as? MineViewMessageType
+            cell.titleLab.text = dict["name"] as? String
+            cell.iconView.image = UIImage(named: dict["icon"] as? String ?? "")
+            if indexPath.section == dataArray.count {
                 cell.type = .all
             }else{
                 if indexPath.row == 0 {
@@ -208,7 +226,9 @@ extension MineViewController : UITableViewDelegate,UITableViewDataSource{
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if indexPath.section == 0 {//偏好设置
+        
+        if(indexPath.section < 1){
+            
             if userManager.isLogin {
                 let vc = UserDefaultVC()
                 navigationController?.pushViewController(vc, animated: true)
@@ -223,8 +243,20 @@ extension MineViewController : UITableViewDelegate,UITableViewDataSource{
                 }
             }
             return
-        }else if indexPath.section == 1 {
-            if indexPath.row == 0 {//安全
+        }
+        
+        let tmpArray = dataArray[indexPath.section - 1]
+        let dict = tmpArray[indexPath.row]
+        let mineMessageType = dict["MineViewMessageType"] as? MineViewMessageType
+        switch mineMessageType {
+            case .MineViewLoginType:
+                break
+            case .MineViewFriendType:
+                let vc = WebViewController()
+                vc.urlStr = "http://192.168.3.44:8080/#/commission"
+                self.navigationController?.pushViewController(vc, animated: true)
+                break
+            case .MineViewSafeType:
                 if userManager.isLogin {
                     let vc = MineSafeVC()
                     navigationController?.pushViewController(vc, animated: true)
@@ -233,25 +265,26 @@ extension MineViewController : UITableViewDelegate,UITableViewDataSource{
                     userManager.logoutWithVC(currentVC: self)
                     return
                 }
-            }else{
+                break
+            case .MineViewSettingType:
                 //设置
                 let vc = SettingViewController()
                 navigationController?.pushViewController(vc, animated: true)
-                return
-            }
-        }else if indexPath.section == 2{
-            if indexPath.row == 0 {//帮助中心
+                break
+            case .MineViewHelpType:
                 let vc = HelpCenterVC()
                 navigationController?.pushViewController(vc, animated: true)
-                return
-            }else{//分享
+                break
+            case .MineViewShareType:
                 let vc = ShareVC()
                 navigationController?.pushViewController(vc, animated: true)
-                return
-            }
-        }else{
-            let vc = UserCertificationVC()
-            navigationController?.pushViewController(vc, animated: true)
+                break
+            case .MineViewAuthType:
+                let vc = UserCertificationVC()
+                navigationController?.pushViewController(vc, animated: true)
+                break
+            default:
+                break
         }
     }
 }

@@ -1,13 +1,13 @@
 //
-//  HSActionSheet.swift
+//  HSActionSheetNormal.swift
 //  coiuntrade-ios
 //
-//  Created by tfr on 2022/7/14.
+//  Created by tfr on 2022/7/21.
 //
 
 import UIKit
 
-class HSActionSheet: UIView {
+class HSActionSheetNormal: UIView {
     /// 返回数据回调
     public var clickCellAtion: ((Int)->())?
     lazy var bgView : UIView = {
@@ -21,26 +21,16 @@ class HSActionSheet: UIView {
         table.delegate = self
         table.dataSource = self
         table.separatorStyle = .none
-        table.backgroundColor = .hexColor("2D2D2D")
+        table.backgroundColor = .clear
         table.showsVerticalScrollIndicator = false
         table.corner(cornerRadius: 10)
-        table.register(HSActionSheetCell.self, forCellReuseIdentifier:  HSActionSheetCell.CELLID)
+        table.register(HSActionSheetdefCell.self, forCellReuseIdentifier:  HSActionSheetdefCell.CELLID)
         return table
     }()
     lazy var contentView : UIView = {
         let v = UIView()
-        v.backgroundColor = .clear
+        v.backgroundColor = .hexColor("1E1E1E")
         return v
-    }()
-    lazy var cancelBtn : UIButton = {
-        let btn = UIButton()
-        btn.corner(cornerRadius: 10)
-        btn.titleLabel?.font = FONTDIN(size: 16)
-        btn.addTarget(self, action: #selector(tapCancelBtn), for: .touchUpInside)
-        btn.backgroundColor = .hexColor("434343")
-        btn.setTitleColor(UIColor.hexColor("FFFFFF"), for: .normal)
-        btn.setTitle("取消", for: .normal)
-        return btn
     }()
     var datas : Array<String> = []{
         didSet{
@@ -50,12 +40,13 @@ class HSActionSheet: UIView {
                 self.tableView.isScrollEnabled = false
             }
             tableView.height = 48.0*CGFloat(self.datas.count)
-            cancelBtn.y = tableView.maxY+14
-            contentView.height = cancelBtn.maxY+SafeAreaBottom
+            contentView.height = tableView.maxY+SafeAreaBottom
             
             self.tableView.reloadData()
         }
     }
+    
+    var selectedIndex = -1 // 默认选择可选
     public func show() {
         UIApplication.shared.windows.first?.addSubview(self)
         
@@ -91,29 +82,29 @@ class HSActionSheet: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
 }
 //MARK: ui
-extension HSActionSheet{
+extension HSActionSheetNormal{
     @objc func tapCancelBtn(){
         self.dismiss()
     }
     func setUI(){
         self.addSubview(bgView)
         bgView.addSubview(contentView)
-        contentView.addSubview(cancelBtn)
         contentView.addSubview(tableView)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(tapCancelBtn))
+        bgView.addGestureRecognizer(tap)
     }
     func initSubViewsConstraints(){
         self.frame = UIScreen.main.bounds
         self.bgView.frame = self.frame
-        tableView.frame = CGRect(x: 0, y: 0, width: SCREEN_WIDTH-LR_Margin*2, height: 48.0*CGFloat(self.datas.count))
-        cancelBtn.frame = CGRect(x: 0, y: tableView.maxY+14, width: tableView.width, height: 48)
-        contentView.frame = CGRect(x: LR_Margin, y: bgView.maxY, width: SCREEN_WIDTH-LR_Margin*2, height: cancelBtn.maxY+SafeAreaBottom)
+        tableView.frame = CGRect(x: 0, y: 0, width: SCREEN_WIDTH, height: 50)
+        contentView.frame = CGRect(x: 0, y: bgView.maxY, width: SCREEN_WIDTH, height: tableView.maxY+SafeAreaBottom)
     }
 }
 
-extension HSActionSheet : UITableViewDataSource,UITableViewDelegate{
+extension HSActionSheetNormal : UITableViewDataSource,UITableViewDelegate{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return datas.count
     }
@@ -121,8 +112,9 @@ extension HSActionSheet : UITableViewDataSource,UITableViewDelegate{
         return 48
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell : HSActionSheetCell = tableView.dequeueReusableCell(withIdentifier: HSActionSheetCell.CELLID, for: indexPath) as! HSActionSheetCell
+        let cell : HSActionSheetdefCell = tableView.dequeueReusableCell(withIdentifier: HSActionSheetdefCell.CELLID, for: indexPath) as! HSActionSheetdefCell
         let values = self.datas[indexPath.row]
+        cell.isSelected = indexPath.row == self.selectedIndex
         cell.values = values
         return cell
     }
@@ -136,9 +128,19 @@ extension HSActionSheet : UITableViewDataSource,UITableViewDelegate{
 }
 
 
-class HSActionSheetCell : UITableViewCell{
-    static let CELLID = "HSActionSheetCell"
+class HSActionSheetdefCell : UITableViewCell{
+    static let CELLID = "HSActionSheetdefCell"
     
+    override var isSelected: Bool {
+        
+        didSet{
+            if isSelected {
+                titleLab.textColor = .hexColor("FCD283")
+            }else{
+                titleLab.textColor = .hexColor("989898")
+            }
+        }
+    }
     private lazy var titleLab : UILabel = {
         let v = UILabel()
         v.textColor = .hexColor("989898")
@@ -158,7 +160,12 @@ class HSActionSheetCell : UITableViewCell{
         self.backgroundColor = .clear
         self.contentView.backgroundColor = .clear
         contentView.addSubview(titleLab)
-        titleLab.frame = contentView.bounds
+//        titleLab.frame = contentView.bounds
+        titleLab.snp.makeConstraints { make in
+            
+            make.left.right.top.bottom.equalToSuperview()
+        }
+        
     }
     
     required init?(coder: NSCoder) {

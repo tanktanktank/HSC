@@ -538,6 +538,16 @@ class SelectPercentView : UIView {
     var percentChangedClosure: ((Int)->())?  // 点击回调
     var isBuy = true // true ： 买  false ： 卖
     
+    var isSqure = false {
+        didSet{
+          _ =  percentSubviews.compactMap { cell in
+                
+              cell.isSqure = isSqure
+            }
+        }
+    }
+    
+    
     let tap25Percent = UITapGestureRecognizer()
     let tap50Percent = UITapGestureRecognizer()
     let tap75Percent = UITapGestureRecognizer()
@@ -679,7 +689,28 @@ class SelectPercentView : UIView {
 //MARK: 百分比view
 class PercentCell : UIView {
     var isBuy = true // true ： 买  false ： 卖
+    var isSqure = false {
+        didSet{
+            
+            if isSqure{
+                barView.corner(cornerRadius: 0)
+                barView.snp.remakeConstraints { make in
+                    
+                    make.right.left.equalToSuperview()
+                    make.height.equalTo(12)
+                    make.top.equalTo(15)
+                }
+                
+                titleLabel.snp.remakeConstraints { make in
+                    
+                    make.left.right.equalToSuperview()
+                    make.top.equalTo(barView.snp.bottom).offset(3)
+                    make.height.equalTo(15)
+                }
 
+            }
+        }
+    }
     let titleLabel : UILabel = {
         
         let label = UILabel()

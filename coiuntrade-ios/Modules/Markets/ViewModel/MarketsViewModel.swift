@@ -369,7 +369,6 @@ class MarketsViewModel: NSObject, WebSocketDelegate{
         NetWorkRequest(GitHub.marketTicker24(coin: coin, currency: currency), modelType: Ticker24Model.self) { responseInfo in
             
             let resp = responseInfo as! Ticker24Model
-            print("结果24")
             dataSubject.onNext(resp)
             dataSubject.onCompleted()
         }
@@ -437,6 +436,29 @@ class MarketsViewModel: NSObject, WebSocketDelegate{
         })
         return dataSubject
     }
+    //MARK: 新增自选(取消也一样)
+    func reqUpdateAccountLike(reqM: ReqCoinModel)->(PublishSubject<Any>) {
+        let dataSubject = PublishSubject<Any>()
+        NetWorkProvider.request(.accountaddlike(reqModel: reqM), completion: { result in
+            if case .success(let response) = result {
+                if [UInt8](response.data).count > 0{
+                    let jsonDic = try! response.mapJSON() as! NSDictionary
+                    let model = NetWorkStringModel.deserialize(from: jsonDic)
+                    if model?.status == 1 {
+                        dataSubject.onNext(true)
+                        dataSubject.onCompleted()
+                    } else{
+                        dataSubject.onError(NSError(domain: "", code: 0))
+                    }
+                } else{
+                    dataSubject.onError(NSError(domain: "", code: 0))
+                }
+            } else {
+                dataSubject.onError(NSError(domain: "", code: 0))
+            }
+        })
+        return dataSubject
+    }
     //MARK: 获取kline
     func requestMarketKline()->(PublishSubject<Any>) {
         let dataSubject = PublishSubject<Any>()
@@ -455,7 +477,6 @@ class MarketsViewModel: NSObject, WebSocketDelegate{
                             let ma5 = indexCalculate.ma5
                             let ma10 = indexCalculate.ma10
                             let ma30 = indexCalculate.ma30
-                            
                             
                             DispatchQueue.global().async{
                                 
@@ -527,6 +548,95 @@ class MarketsViewModel: NSObject, WebSocketDelegate{
         })
         return dataSubject
     }
+    
+    func requestMarketKline(reqM: ReqCoinModel)->(PublishSubject<Any>) {
+        let dataSubject = PublishSubject<Any>()
+        NetWorkProvider.request(.marketkline(reqModel: reqM), completion: { [weak self] result in
+            
+            if case .success(let response) = result {
+                if [UInt8](response.data).count > 0{
+                    let jsonDic = try! response.mapJSON() as! NSDictionary
+                    let model = NetWorkDictionaryModel<NetWorkStringListModel>.deserialize(from: jsonDic)
+                    if model?.status == 1 {
+                        let aModel = model!.data
+                        self?.kLines = aModel?.data ?? []
+                        if (self?.kLines.count ?? 0) > 0{
+                            let indexCalculate = IndexCalculation.shared
+                            let ma5 = indexCalculate.ma5
+                            let ma10 = indexCalculate.ma10
+                            let ma30 = indexCalculate.ma30
+                            
+                            DispatchQueue.global().async{
+                                
+                                var temkLineList: [XLKLineModel] = Array()
+
+                                for array in self!.kLines {
+                                    let model = XLKLineModel()
+                                    let asy = array as! Array<Any>
+                                    model.time = TimeInterval(asy[0] as! String)!
+                                    model.open = CGFloat(Double(asy[1] as! String)!)
+                                    model.high = CGFloat(Double(asy[2] as! String)!)
+                                    model.low = CGFloat(Double(asy[3] as! String)!)
+                                    model.close = CGFloat(Double(asy[4] as! String)!)
+                                    model.volumefrom = CGFloat(Double(asy[5] as! String)!)
+//                                    self?.kLineList.append(model)
+                                    temkLineList.append(model)
+                                    
+                                    //ma数据处理
+                                    if(temkLineList.count >= ma5){
+                                        let temFloats = self!.caculateTemplate(maN: ma5, xlkms: temkLineList)
+                                        model.ma5 = CGFloat(indexCalculate.maWithN(mas: temFloats))
+                                    }
+                                    if(temkLineList.count >= ma10){
+                                        let temFloats = self!.caculateTemplate(maN: ma10, xlkms: temkLineList)
+                                        model.ma10 = CGFloat(indexCalculate.maWithN(mas: temFloats))
+                                    }
+                                    if(temkLineList.count >= ma30){
+                                        let temFloats = self!.caculateTemplate(maN: ma30, xlkms: temkLineList)
+                                        model.ma30 = CGFloat(indexCalculate.maWithN(mas: temFloats))
+                                    }
+                                }
+                                //boll数据处理
+                                if(temkLineList.count > indexCalculate.boll20){
+                                    indexCalculate.bollCall(dataList: temkLineList)
+                                }
+                                //KDJ数据处理
+                                if(temkLineList.count >= indexCalculate.kdj9){
+                                    indexCalculate.kdjCal(dataList: temkLineList)
+                                }
+                                //MACD 数据处理
+                                if(temkLineList.count > indexCalculate.macdSlow){
+                                    indexCalculate.macdCal(dataList: temkLineList)
+                                }
+                                //RSI数据处理
+                                if(temkLineList.count > indexCalculate.rsi6){
+                                    indexCalculate.rsiCal(dataList: temkLineList)
+                                }
+                                DispatchQueue.main.async{
+                                    
+                                    self?.kLineList = temkLineList
+                                    dataSubject.onNext(true)
+                                    dataSubject.onCompleted()
+                                }
+                            }
+                        } else{
+                            dataSubject.onNext(false)
+                            dataSubject.onCompleted()
+                        }
+                        
+                    } else{
+                        dataSubject.onNext(false)
+                        dataSubject.onCompleted()
+                    }
+                } else {
+                    dataSubject.onNext(false)
+                    dataSubject.onCompleted()
+                }
+            }
+        })
+        return dataSubject
+    }
+    
     //MARK: 获取最新成交
     func requestNewdeal()->(PublishSubject<Any>) {
         self.newdeals.removeAll()
@@ -703,6 +813,7 @@ class MarketsViewModel: NSObject, WebSocketDelegate{
                                 }
                             }
                         }
+                        
                     }
                     case 9:
                         self.buys = model!.data
@@ -853,25 +964,7 @@ class MarketsViewModel: NSObject, WebSocketDelegate{
 
 
 public extension String {
-
-    /// Returns the number of decimals. It will be always greater than 0
-//    var numberOfDecimals: Int {
-//        let integerString = String(Int(self))
-//        //Avoid conversion issue
-//        let stringNumber: String
-//        if self is Double {
-//            stringNumber = String(Double(self))
-//        }
-//        else {
-//            stringNumber = String(Float(self))
-//        }
-//        let decimalCount = stringNumber.count - integerString.count - 1
-//
-//        return decimalCount
-//    }
-    
     var numberOfDecimal: Int {
-        
 
         if self.toDouble() > 1 {
             
@@ -881,30 +974,6 @@ public extension String {
             let count = self.count - 2
            return  count
         }
-        
- 
-//        if  self.toDouble() < 1 {
-//
-//            return 0
-//        }else{
-//
-//            let stringNumber: String = "\(integerString)"
-//
-//            return stringNumber.count - 1
-//        }
-        //Avoid conversion issue
-        
-        
-        
-//        if self is Double {
-//            stringNumber = String(Double(self))
-//        }
-//        else {
-//            stringNumber = String(Float(self))
-//        }
-//        let decimalCount = stringNumber.count - integerString.count - 1
-//
-//        return decimalCount
     }
 
    

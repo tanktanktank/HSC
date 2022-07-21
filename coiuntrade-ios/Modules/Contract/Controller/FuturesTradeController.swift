@@ -11,7 +11,9 @@ class FuturesTradeController: BaseViewController {
     
     typealias scrollCallback = ((_ scrollView : UIScrollView) -> Void)?
     private var disposeBag = DisposeBag()
-    
+    var coinSocket: HSSocketManager!
+    var curSelectTime = "15m"
+
     var scrollClosure : scrollCallback = nil
 
     let tableHeader = ContractHeader()
@@ -22,19 +24,44 @@ class FuturesTradeController: BaseViewController {
         scrollview.showsVerticalScrollIndicator = false
         return scrollview
     }()
+    let moreBtn = UIButton(frame: CGRect.zero)
+    let calculateBtn = UIButton(frame: CGRect.zero)
+    let klineBtn = UIButton(frame: CGRect.zero)
+    let littleKBtn = UIButton(frame: CGRect.zero)
 
     override func viewDidLoad() {
         super.viewDidLoad()
       
         setUI()
         addConstraints()
+        addEvent()
+        setupData()
+        reqData()
+    }
+    
+    func setupData(){
+        
+        coinSocket = HSSocketManager()
+    }
+    
+    func reqData(){
+        
+        let reqCoinM = ReqCoinModel()
+        reqCoinM.coin = "BTC"
+        reqCoinM.currency = "USDT"
+        reqCoinM.kline_type = self.curSelectTime
+        coinSocket.requestMarketKline(reqM: reqCoinM).subscribe(onNext: {[weak self] resp in
+            self!.headerView.updateSecondHeight()
+            self!.headerView.littleKLineList = self!.coinSocket.kLineList
+        }).disposed(by: disposeBag)
     }
     
     //内容
     lazy var tradeTableView : BaseTableView = {
         let tableView = BaseTableView(frame: CGRect.zero, style: .plain)
-//        tableView.register(FuturesHoldingCell.self, forCellReuseIdentifier: FuturesHoldingCell)
+        tableView.register(FuturesEntrustCell.self, forCellReuseIdentifier: "FuturesEntrustCell")
         tableView.register(UINib(nibName: "FuturesHoldingCell", bundle: nil), forCellReuseIdentifier: "FuturesHoldingCell")
+        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.tableHeaderView  = headerView
@@ -63,7 +90,6 @@ class FuturesTradeController: BaseViewController {
            
             make.right.equalTo(-10)
         })
-        
         
 //        //MARK: 行情
 //        button.rx.tap
@@ -113,13 +139,18 @@ class FuturesTradeController: BaseViewController {
         ratioLabel.font = FONTDIN(size: 12)
         view.addSubview(ratioLabel)
         
-        let coinBtn = UIButton(frame: CGRect.zero)
-        view.addSubview(coinBtn)
-        coinBtn.setImage(UIImage(named: "trade1"), for: .normal)
+        view.addSubview(moreBtn)
+        moreBtn.setImage(UIImage(named: "futures_more"), for: .normal)
 
-        let klineBtn = UIButton(frame: CGRect.zero)
+        view.addSubview(calculateBtn)
+        calculateBtn.setImage(UIImage(named: "futures_calculate"), for: .normal)
+
         view.addSubview(klineBtn)
         klineBtn.setImage(UIImage(named: "tradekline"), for: .normal)
+        
+        view.addSubview(littleKBtn)
+        littleKBtn.setImage(UIImage(named: "tradedown"), for: .normal)
+        littleKBtn.setImage(UIImage(named: "tradeUp"), for: .selected)
         
         //MARK: K线
 //        klineBtn.rx.tap.subscribe(onNext: {
@@ -128,11 +159,6 @@ class FuturesTradeController: BaseViewController {
 //            getTopVC()?.navigationController?.pushViewController(controller, animated: true)
 //        }).disposed(by: disposeBag)
 
-
-        let moreBtn = UIButton(frame: CGRect.zero)
-        view.addSubview(moreBtn)
-        moreBtn.setImage(UIImage(named: "tradedown"), for: .normal)
-        moreBtn.setImage(UIImage(named: "tradeUp"), for: .selected)
         //点击展开K线
 
 //        moreBtn.rx.tap
@@ -182,22 +208,28 @@ class FuturesTradeController: BaseViewController {
             make.centerY.equalTo(coinSymbolBtn)
         }
 
-        coinBtn.snp.makeConstraints { make in
+        moreBtn.snp.makeConstraints { make in
             
             make.right.top.bottom.equalToSuperview()
             make.width.equalTo(40)
         }
         
-        klineBtn.snp.makeConstraints { make in
+        calculateBtn .snp.makeConstraints { make in
             
-            make.right.equalTo(coinBtn.snp.left)
-            make.top.bottom.width.equalTo(coinBtn)
+            make.right.equalTo(moreBtn.snp.left)
+            make.top.bottom.width.equalTo(moreBtn)
         }
 
-        moreBtn.snp.makeConstraints { make in
+        klineBtn.snp.makeConstraints { make in
+         
+            make.right.equalTo(calculateBtn.snp.left)
+            make.top.bottom.width.equalTo(calculateBtn)
+        }
+        
+        littleKBtn.snp.makeConstraints { make in
          
             make.right.equalTo(klineBtn.snp.left)
-            make.top.bottom.width.equalTo(coinBtn)
+            make.top.bottom.width.equalTo(calculateBtn)
         }
         
         bottonLineView.snp.makeConstraints { make in
@@ -221,6 +253,26 @@ class FuturesTradeController: BaseViewController {
 
         return view
     }()
+    
+    var isEntrust = true {
+        
+        didSet{
+            
+            self.scrollLine.snp.remakeConstraints{ make in
+
+                make.bottom.equalToSuperview()
+                make.centerX.equalTo((isEntrust ? currentBtn : assetBtn))
+                make.width.equalTo(88)
+                make.height.equalTo(3)
+            }
+
+            self.tradeTableView.reloadData()
+        }
+    }
+    
+    let scrollLine = UIView()
+    let currentBtn = UIButton()
+    let assetBtn = UIButton()
 
     lazy var sectionHeaderView : UIView = {
         
@@ -228,11 +280,10 @@ class FuturesTradeController: BaseViewController {
         view.backgroundColor = .hexColor("1E1E1E")
         let bottomLine = UIView()
         bottomLine.backgroundColor = .hexColor("000000")
-        let scrollLine = UIView()
         scrollLine.backgroundColor = .hexColor("FCD283")
         
-        let currentBtn = UIButton()
-        let assetBtn = UIButton()
+//        let currentBtn = UIButton()
+//        let assetBtn = UIButton()
         let historyBtn = UIButton()
 
         currentBtn.setTitle("当前委托".localized(), for: .normal)
@@ -242,18 +293,19 @@ class FuturesTradeController: BaseViewController {
         currentBtn.isSelected = true
         currentBtn.rx.tap.subscribe({ _ in
             
-            if !currentBtn.isSelected {
-                currentBtn.isSelected =  !currentBtn.isSelected
-                assetBtn.isSelected =  !currentBtn.isSelected
-
-                scrollLine.snp.remakeConstraints { make in
-
-                    make.bottom.equalToSuperview()
-                    make.centerX.equalTo(currentBtn)
-                    make.width.equalTo(88)
-                    make.height.equalTo(3)
-                }
-            }
+            self.isEntrust = true
+//            if !currentBtn.isSelected {
+//                currentBtn.isSelected =  !currentBtn.isSelected
+//                assetBtn.isSelected =  !currentBtn.isSelected
+//
+//                scrollLine.snp.remakeConstraints { make in
+//
+//                    make.bottom.equalToSuperview()
+//                    make.centerX.equalTo(currentBtn)
+//                    make.width.equalTo(88)
+//                    make.height.equalTo(3)
+//                }
+//            }
         }).disposed(by: disposeBag)
     
 //        self.updateEntrusts.subscribe{ num in
@@ -273,25 +325,12 @@ class FuturesTradeController: BaseViewController {
         
         
         assetBtn.setTitle("持有仓位(2)".localized(), for: .normal)
-        assetBtn.isEnabled = false
         assetBtn.titleLabel?.font = FONTR(size: 16)
         assetBtn.setTitleColor(UIColor.hexColor("989898"), for: .normal)
         assetBtn.setTitleColor(UIColor.hexColor("FFFFFF"), for: .selected)
 
         assetBtn.rx.tap.subscribe({ _ in
-            
-            if !assetBtn.isSelected {
-                assetBtn.isSelected =  !assetBtn.isSelected
-                currentBtn.isSelected =  !assetBtn.isSelected
-
-                scrollLine.snp.remakeConstraints{ make in
-
-                    make.bottom.equalToSuperview()
-                    make.centerX.equalTo(assetBtn)
-                    make.width.equalTo(88)
-                    make.height.equalTo(3)
-                }
-            }
+            self.isEntrust = false
         }).disposed(by: disposeBag)
 
         
@@ -300,7 +339,7 @@ class FuturesTradeController: BaseViewController {
             
             if userManager.isLogin {
                  
-                let vc = EntrustVC()
+                let vc = FuturesEntrustVC()
                 getTopVC()?.navigationController?.pushViewController(vc, animated: true)
             }else{
                 
@@ -358,7 +397,6 @@ class FuturesTradeController: BaseViewController {
     lazy var headerView : ContractHeader = {
         
         let view = ContractHeader()
-        
         return view
     }()
 
@@ -390,28 +428,48 @@ class FuturesTradeController: BaseViewController {
             make.height.equalTo(mainScrollView.snp.height).offset(-55)
             make.left.right.bottom.equalToSuperview()
         }
+    }
 
-//        tradeTableView.snp.makeConstraints { make in
-//
-//            make.top.equalTo(0)
-//            make.height.equalTo(mainScrollView.snp.height).offset(-39)
-//            make.left.right.bottom.equalToSuperview()
-//            make.width.equalTo(SCREEN_WIDTH)
-//        }
+    func addEvent() {
         
+        coinSymbolBtn.rx.tap
+                    .subscribe(onNext: {
+                        HSQuotesView.show()
+            }).disposed(by: disposeBag)
+        
+        littleKBtn.rx.tap
+                    .subscribe(onNext: {[weak self] in
+                    
+                        self!.littleKBtn.isSelected = !self!.littleKBtn.isSelected
+                        if(self!.littleKBtn.isSelected){
+                            self!.tradeTableView.tableHeaderView?.height =  670.0//436+234 =
+                        }else{
+                            self!.tradeTableView.tableHeaderView?.height =  436.0//436+234 =
+                        }
+                        self!.headerView.updateConstraint(isShow: self!.littleKBtn.isSelected)
+                        self!.tradeTableView.reloadData()
+
+                    }).disposed(by: disposeBag)
+
+        klineBtn.rx.tap.subscribe(onNext: {[weak self] in
+
+            //TODO: coin,currency  需要动态化
+            let coinM = CoinModel()
+            coinM.coin = "BTC"
+            coinM.currency = "USDT"
+            let coinDetailVC = HSCoinDetailVC()
+            coinDetailVC.model = coinM
+            coinDetailVC.isAgreement = true
+            self?.navigationController?.pushViewController(coinDetailVC, animated: true)
+
+        }).disposed(by: disposeBag)
+
+        calculateBtn.rx.tap
+            .subscribe(onNext: { [weak self] in
+                
+                self?.navigationController?.pushViewController(FuturesCalculateController(), animated: true)
+            }).disposed(by: disposeBag)
     }
-
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
 }
 
 
@@ -420,17 +478,56 @@ extension FuturesTradeController : UITableViewDelegate , UITableViewDataSource{
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        return 3
+        return self.isEntrust ? 10 : 3
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         
-        return 242
+        return self.isEntrust ? (indexPath.row  == 3 ? 136 : 114 ): 242
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell: FuturesHoldingCell = tableView.dequeueReusableCell(withIdentifier: "FuturesHoldingCell") as! FuturesHoldingCell
+        if self.isEntrust{
+            
+            let cell: FuturesEntrustCell = tableView.dequeueReusableCell(withIdentifier: "FuturesEntrustCell") as! FuturesEntrustCell
+            cell.isTrigger = indexPath.row  == 3
+            cell.progressV.setProgress(10, progressColor: .hexColor("02C078"),text: "50%")
+            return cell
+
+        }else{
+            
+            let cell: FuturesHoldingCell = tableView.dequeueReusableCell(withIdentifier: "FuturesHoldingCell") as! FuturesHoldingCell
+
+            cell.adjustClick = {
+    
+                let actionSheet = FuturesLeverSheet()
+    
+    //            actionSheet.clickCellAtion = { index in
+    //                print("\(index)")
+    //            }
+                actionSheet.show()
+            }
+    
+            cell.stopPLClick = {
+                let actionSheet = FuturesSetStopPLSheet()
+    
+                actionSheet.show()
+            }
+    
+            cell.closePositionClick = {
+    
+                let actionSheet = FuturesCLosePositionSheet()
+    
+                actionSheet.show()
+            }
+
+            return cell
+
+        }
+        
+//        }
+        
 //        let model = self.entrustViewModel.allEntrust[indexPath.row]
 //        cell.model = model
 //        //MARK: 取消
@@ -452,7 +549,6 @@ extension FuturesTradeController : UITableViewDelegate , UITableViewDataSource{
 ////                self.reloadTradeTable()
 //
 //            }).disposed(by: disposeBag)
-        return cell
     }
     
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {

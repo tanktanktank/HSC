@@ -175,6 +175,9 @@
                                 <color key="tintColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <state key="normal" title="调整杠杆"/>
+                                <connections>
+                                    <action selector="adjustBtnClick:" destination="KGk-i7-Jjw" eventType="touchUpInside" id="Z1V-zf-JcN"/>
+                                </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="TDB-Lq-Kg4">
                                 <rect key="frame" x="120.5" y="0.0" width="107" height="30"/>
@@ -183,6 +186,9 @@
                                 <color key="tintColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <state key="normal" title="止盈止损"/>
+                                <connections>
+                                    <action selector="stopPLBtnClick:" destination="KGk-i7-Jjw" eventType="touchUpInside" id="ETq-dg-3Wa"/>
+                                </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="X8p-9k-1F1">
                                 <rect key="frame" x="241.5" y="0.0" width="106.5" height="30"/>
@@ -191,6 +197,9 @@
                                 <color key="tintColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <state key="normal" title="平仓"/>
+                                <connections>
+                                    <action selector="closePositionBtnClick:" destination="KGk-i7-Jjw" eventType="touchUpInside" id="CkY-8n-IJU"/>
+                                </connections>
                             </button>
                         </subviews>
                         <constraints>

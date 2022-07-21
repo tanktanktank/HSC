@@ -8,33 +8,10 @@
 import UIKit
 import RxSwift
 
-class SelectFuturesSheet: UIView {
+class FuturesSelectPositionSheet: FuturesSheetBaseView {
 
-    let disposebag = DisposeBag()
     /// 返回数据回调
     public var clickCellAtion: ((Int)->())?
-    lazy var bgView : UIView = {
-        let view = UIView()
-        view.backgroundColor = .hexColor("000000", alpha: 0.5)
-        return view
-    }()
-
-    lazy var contentView : UIView = {
-        let contentView = UIView()
-        contentView.corner(cornerRadius: 10)
-        contentView.backgroundColor = .hexColor("1E1E1E")
-        return contentView
-    }()
-    lazy var cancelBtn : UIButton = {
-        let btn = UIButton()
-        btn.corner(cornerRadius: 4)
-        btn.titleLabel?.font = FONTDIN(size: 16)
-        btn.addTarget(self, action: #selector(tapCancelBtn), for: .touchUpInside)
-        btn.backgroundColor = .hexColor("FCD283")
-        btn.setTitleColor(UIColor.hexColor("FFFFFF"), for: .normal)
-        btn.setTitle("取消", for: .normal)
-        return btn
-    }()
     
     lazy var fullBtn :UIButton = {
         
@@ -123,7 +100,6 @@ class SelectFuturesSheet: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setUI()
-        initSubViewsConstraints()
     }
     
     required init?(coder: NSCoder) {
@@ -131,57 +107,16 @@ class SelectFuturesSheet: UIView {
     }
     
 }
-extension SelectFuturesSheet{
-
-    public func show() {
-        UIApplication.shared.windows.first?.addSubview(self)
-        
-        UIView.animate(withDuration: 0.3) {
-            var rect:CGRect = self.contentView.frame
-            rect.origin.y -= self.contentView.bounds.size.height
-            self.contentView.frame = rect
-        }
-    }
-    public func dismiss() {
-        UIView.animate(withDuration: 0.3) {
-            var rect:CGRect = self.contentView.frame
-            rect.origin.y += self.contentView.bounds.size.height
-            self.contentView.frame = rect
-        } completion: { isok in
-            self.removeAllSubViews()
-            self.removeFromSuperview()
-        }
-
-    }
-    /// 移除所有子控件
-    func removeAllSubViews(){
-        if self.subviews.count>0{
-            self.subviews.forEach({$0.removeFromSuperview()})
-        }
-    }
-}
 
 //MARK: ui
-extension SelectFuturesSheet{
+extension FuturesSelectPositionSheet{
     @objc func tapCancelBtn(){
         self.dismiss()
     }
     func setUI(){
-        self.addSubview(bgView)
-        bgView.addSubview(contentView)
-        contentView.addSubview(cancelBtn)
         
-        let titleLabel = UILabel()
-        titleLabel.text = "保证金模式"
-        titleLabel.textColor = .white
-        titleLabel.font = FONTR(size: 16)
-        contentView.addSubview(titleLabel)
-        titleLabel.snp.makeConstraints { make in
-            
-            make.top.left.equalTo(LR_Margin)
-            make.height.equalTo(22)
-        }
-        
+        self.title = "保证金模式"
+
         let closeBtn = UIButton()
         closeBtn.addTarget(self, action: #selector(tapCancelBtn), for: .touchUpInside)
         closeBtn.setImage(UIImage(named: "iconcolse"), for: .normal)
@@ -230,24 +165,6 @@ extension SelectFuturesSheet{
             make.left.equalTo(LR_Margin)
             make.top.equalTo(tipLabel.snp.bottom).offset(LR_Margin)
             make.height.equalTo(20)
-        }
-
-    }
-    func initSubViewsConstraints(){
-        self.frame = UIScreen.main.bounds
-        self.bgView.frame = self.frame
-        
-        contentView.snp.makeConstraints { make in
-            
-            make.left.right.bottom.equalToSuperview()
-            make.height.equalTo((243 + SafeAreaBottom))
-        }
-        cancelBtn.snp.makeConstraints { make in
-            
-            make.bottom.equalToSuperview().offset( -(SafeAreaBottom + 1))
-            make.left.equalTo(15)
-            make.right.equalTo(-15)
-            make.height.equalTo(48)
         }
     }
 }

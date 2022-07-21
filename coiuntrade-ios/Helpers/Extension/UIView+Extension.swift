@@ -252,7 +252,7 @@ extension UIView{
     
     ///画虚线边框
 
-        func drawDashLine(strokeColor: UIColor, lineWidth: CGFloat = 1, lineLength: Int = 5, lineSpacing: Int = 2, corners: UIRectSide) {
+    func drawDashLine(strokeColor: UIColor, lineWidth: CGFloat = 1, lineLength: Int = 4, lineSpacing: Float = 2.5, corners: UIRectSide) {
 
             let shapeLayer = CAShapeLayer()
 

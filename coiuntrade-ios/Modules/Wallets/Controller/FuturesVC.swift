@@ -12,21 +12,16 @@ class FuturesVC: BaseViewController {
     var scrollClosure : scrollCallback = nil
     
     lazy var headView : FuturesHeadView = FuturesHeadView()
-    /// 懒加载
-    lazy var tableView : BaseTableView = {
-        let table = BaseTableView.init(frame: .zero, style: .plain)
-        table.delegate = self
-        table.dataSource = self
-        table.separatorStyle = .none
-        table.backgroundColor = .hexColor("1E1E1E")
-        table.showsVerticalScrollIndicator = false
-        table.register(BalanceListCell.self, forCellReuseIdentifier:  BalanceListCell.CELLID)
-        table.rowHeight = 56
-        return table
-    }()
+    
+    lazy var pagerView = JXPagingView(delegate: self)
+    lazy var lineView = JXSegmentedIndicatorLineView()
+    lazy var segmentedViewDataSource = JXSegmentedTitleDataSource()
+    
+    lazy var segmentedView = JXSegmentedView(frame: self.view.frame)
+    var titles :[String] = ["持有仓位".localized(),"全部资产".localized()]
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.view.backgroundColor = .hexColor("000000")
         setUI()
         initSubViewsConstraints()
     }
@@ -35,18 +30,116 @@ class FuturesVC: BaseViewController {
 //MARK: ui
 extension FuturesVC{
     func setUI(){
-        let size = headView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-        let rect = CGRect(x: 0, y: 0, width: 0, height: size.height)
-        headView.frame = rect
-        tableView.tableHeaderView = headView
-        self.view.addSubview(tableView)
+        lineView.indicatorColor = .hexColor("FCD283")
+        segmentedViewDataSource.titles = titles
+        segmentedViewDataSource.titleNormalColor = .hexColor("989898")
+        segmentedViewDataSource.titleSelectedColor = .hexColor("FFFFFF")
+        segmentedViewDataSource.titleNormalFont = FONTM(size: 13)
+        segmentedViewDataSource.titleNormalFont = FONTM(size: 13)
+        segmentedViewDataSource.isTitleColorGradientEnabled = true
+        segmentedViewDataSource.isItemSpacingAverageEnabled = false
+        
+        segmentedView.frame = CGRect(x: 0, y: 0, width: self.view.frame.size.width, height: 44)
+        segmentedView.backgroundColor = .hexColor("1E1E1E")
+        segmentedView.indicators = [lineView]
+        segmentedView.defaultSelectedIndex = 0
+        segmentedView.delegate = self
+        segmentedView.dataSource = self.segmentedViewDataSource
+        
+        ///ios15 分组悬停默认22高度改为0
+        if #available(iOS 15.0, *) {
+            pagerView.mainTableView.sectionHeaderTopPadding = 0
+        }
+        pagerView.frame = self.view.bounds
+        pagerView.mainTableView.backgroundColor = .clear
+        pagerView.defaultSelectedIndex = 0
+        pagerView.automaticallyDisplayListVerticalScrollIndicator = false
+        pagerView.mainTableView.gestureDelegate = self
+        
+        segmentedView.listContainer = pagerView.listContainerView
+        self.view.addSubview(pagerView)
     }
     func initSubViewsConstraints(){
-        tableView.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(1)
-            make.left.right.bottom.equalToSuperview()
+        self.pagerView.snp.makeConstraints { make in
+            make.top.left.right.bottom.equalToSuperview()
         }
     }
+}
+extension FuturesVC : JXPagingViewDelegate {
+    
+    func tableHeaderViewHeight(in pagingView: JXPagingView) -> Int {
+        let size = headView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+        return Int(size.height)
+    }
+    
+    func tableHeaderView(in pagingView: JXPagingView) -> UIView {
+        return self.headView
+    }
+    
+    func heightForPinSectionHeader(in pagingView: JXPagingView) -> Int {
+        return 40
+    }
+    
+    func viewForPinSectionHeader(in pagingView: JXPagingView) -> UIView {
+        return self.segmentedView
+    }
+    
+    
+    func numberOfLists(in pagingView: JXPagingView) -> Int {
+        return segmentedViewDataSource.titles.count
+    }
+    
+    func pagingView(_ pagingView: JXPagingView, initListAtIndex index: Int) -> JXPagingViewListViewDelegate {
+        if index == 0 {
+            let vc = FuturesChildVC()
+            return vc
+        }else{
+            let vc = FuturesChildAllWalletVC()
+            return vc
+        }
+    }
+    func pagingView(_ pagingView: JXPagingView, mainTableViewDidScroll scrollView: UIScrollView) {
+//        let offsetY = scrollView.contentOffset.y
+//        print("offsetY ====\(offsetY)")
+//        let size = headView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+//        print("sizeH ====\(size.height)")
+//        if offsetY >= size.height {
+//            pagingView.mainTableView.isScrollEnabled = true
+//        }else{
+//            pagingView.mainTableView.isScrollEnabled = false
+//        }
+    }
+}
+// MARK: - JXPagingMainTableViewGestureDelegate
+extension FuturesVC : JXPagingMainTableViewGestureDelegate{
+    func mainTableViewGestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+}
+
+// MARK: - JXSegmentedViewDelegate
+extension FuturesVC : JXSegmentedViewDelegate{
+
+    func segmentedView(_ segmentedView: JXSegmentedView, didSelectedItemAt index: Int) {
+//        self.pagerView.reloadData()
+    }
+
+    func segmentedView(_ segmentedView: JXSegmentedView, didClickSelectedItemAt index: Int) {
+
+    }
+
+    func segmentedView(_ segmentedView: JXSegmentedView, didScrollSelectedItemAt index: Int) {
+
+    }
+
+    func segmentedView(_ segmentedView: JXSegmentedView, scrollingFrom leftIndex: Int, to rightIndex: Int, percent: CGFloat) {
+
+    }
+
+    func segmentedView(_ segmentedView: JXSegmentedView, canClickItemAt index: Int) -> Bool {
+        return true
+    }
+
 }
 //MARK: UITableViewDelegate,UITableViewDataSource
 extension FuturesVC : UITableViewDelegate,UITableViewDataSource{
@@ -90,7 +183,7 @@ extension FuturesVC : JXPagingViewListViewDelegate{
     }
     
     func listScrollView() -> UIScrollView {
-        return self.tableView
+        return self.pagerView.mainTableView
     }
     
     func listViewDidScrollCallback(callback: @escaping (UIScrollView) -> ()) {

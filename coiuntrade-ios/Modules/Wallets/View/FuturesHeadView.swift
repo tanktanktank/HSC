@@ -8,6 +8,7 @@
 import UIKit
 
 class FuturesHeadView: UIView {
+    private let itemH = 69.0
     lazy var UBtn : UIButton = {
         let v = UIButton()
         v.backgroundColor = .hexColor("2D2D2D")
@@ -101,7 +102,59 @@ class FuturesHeadView: UIView {
         v.backgroundColor = .hexColor("000000")
         return v
     }()
-    
+    ///保证金
+    lazy var earnestmoneyV : FuturesHeadItemView = {
+        let v = FuturesHeadItemView()
+        v.title = "保证金金额(BTC)"
+        return v
+    }()
+    ///钱包余额
+    lazy var walletmoneyV : FuturesHeadItemView = {
+        let v = FuturesHeadItemView()
+        v.title = "钱包余额(BTC)"
+        return v
+    }()
+    ///未实现盈亏
+    lazy var profitmoneyV : FuturesHeadItemView = {
+        let v = FuturesHeadItemView()
+        v.title = "未实现盈亏(BTC)"
+        return v
+    }()
+    ///全部借款
+    lazy var borrowmoneyV : FuturesHeadItemView = {
+        let v = FuturesHeadItemView()
+        v.title = "全部借款(BTC)"
+        v.isShowArrow = true
+        return v
+    }()
+    lazy var bottomLine : UIView = {
+        let v = UIView()
+        v.backgroundColor = .hexColor("000000")
+        return v
+    }()
+    lazy var resetV : FuturesButtonView = {
+        let v = FuturesButtonView()
+        v.backgroundColor = .hexColor("2D2D2D")
+        v.corner(cornerRadius: 4)
+        v.titleStr = "转换".localized()
+        return v
+    }()
+    lazy var transferV : FuturesButtonView = {
+        let v = FuturesButtonView()
+        v.backgroundColor = .hexColor("2D2D2D")
+        v.corner(cornerRadius: 4)
+        v.titleStr = "tv_fund_tran".localized()
+        let tap = UITapGestureRecognizer.init(target: self, action: #selector(taptransferV))
+        v.addGestureRecognizer(tap)
+        return v
+    }()
+//    lazy var activiV : FuturesActivityView = {
+//        let v = FuturesActivityView()
+//        v.corner(cornerRadius: 4)
+//        v.backgroundColor = .hexColor("2D2D2D")
+//        v.titleStr = "使用BNB抵扣(10%折扣）".localized()
+//        return v
+//    }()
     override init(frame: CGRect) {
         super.init(frame: frame)
         setUI()
@@ -136,6 +189,33 @@ extension FuturesHeadView{
     @objc func tapSeeBtn(sender : ZQButton){
         sender.isSelected = !sender.isSelected
     }
+    //MARK: 划转
+    @objc func taptransferV() {
+        print("划转")
+        let vc = TransferVC()
+        getTopVC()?.navigationController?.pushViewController(vc, animated: true)
+        
+    }
+    @objc func tapEarnestmoneyTitle(){
+        let title = "保证金余额".localized()
+        let message = "保证金余额=钱包余额+未实现盈亏单币种保证金模式下，保证金余额包含U本位合约账户里USDT和BUSD资产的保证金余额的USD总估值。\n联合保证金模式下，保证金余额包含U本位合约账户里所有资产的保证金余额的USD总估值。".localized()
+        tipManager.showSingleAlert(title: title, message: message)
+    }
+    @objc func tapWalletmoneyTitle(){
+        let title = "钱包余额".localized()
+        let message = "钱包余额=总共净划入+总共已实现盈亏+总共净资金费用-总共手续费单币种保证金模式下，钱包余额包含U本位合约账户下USDT估值。\n联合保证金模式下，钱包余额包含U本位合约账户下所有资产的钱包余额USD估值。".localized()
+        tipManager.showSingleAlert(title: title, message: message)
+    }
+    @objc func tapProfitmoneyTitle(){
+        let title = "未实现盈亏".localized()
+        let message = "采用标记价格计算得出的末实现盈亏，以及回报率。".localized()
+        tipManager.showSingleAlert(title: title, message: message)
+    }
+    @objc func tapBorrowmoneyTitle(){
+        let title = "全部借款".localized()
+        let message = "您使用混合保证金模式的总借款数量".localized()
+        tipManager.showSingleAlert(title: title, message: message)
+    }
 }
 //MARK: ui
 extension FuturesHeadView{
@@ -149,6 +229,26 @@ extension FuturesHeadView{
         self.addSubview(rateValue)
         self.addSubview(analeTitle)
         self.addSubview(profitDay)
+        self.addSubview(horizontalLine1)
+        self.addSubview(earnestmoneyV)
+        self.addSubview(walletmoneyV)
+        self.addSubview(profitmoneyV)
+        self.addSubview(borrowmoneyV)
+        self.addSubview(horizontalLine2)
+        self.addSubview(horizontalLine3)
+        self.addSubview(verticalLine)
+        self.addSubview(resetV)
+        self.addSubview(transferV)
+        self.addSubview(bottomLine)
+//        self.addSubview(activiV)
+        let earnestmoneyTap = UITapGestureRecognizer(target: self, action: #selector(tapEarnestmoneyTitle))
+        self.earnestmoneyV.titleLab.addGestureRecognizer(earnestmoneyTap)
+        let walletmoneyTap = UITapGestureRecognizer(target: self, action: #selector(tapWalletmoneyTitle))
+        self.walletmoneyV.titleLab.addGestureRecognizer(walletmoneyTap)
+        let profitmoneyTap = UITapGestureRecognizer(target: self, action: #selector(tapProfitmoneyTitle))
+        self.profitmoneyV.titleLab.addGestureRecognizer(profitmoneyTap)
+        let borrowmoneyTap = UITapGestureRecognizer(target: self, action: #selector(tapBorrowmoneyTitle))
+        self.borrowmoneyV.titleLab.addGestureRecognizer(borrowmoneyTap)
     }
     func initSubViewsConstraints(){
         UBtn.snp.makeConstraints { make in
@@ -198,7 +298,76 @@ extension FuturesHeadView{
             make.top.equalTo(rateValue.snp.bottom).offset(8)
             make.height.equalTo(19)
             make.width.equalTo(60)
-            make.bottom.equalToSuperview().offset(-15)
         }
+        horizontalLine1.snp.makeConstraints { make in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(profitDay.snp.bottom).offset(12)
+            make.height.equalTo(1)
+        }
+        earnestmoneyV.snp.makeConstraints { make in
+            make.top.equalTo(horizontalLine1.snp.bottom)
+            make.left.equalToSuperview()
+            make.height.equalTo(itemH)
+            make.width.equalTo(SCREEN_WIDTH/2.0)
+        }
+        walletmoneyV.snp.makeConstraints { make in
+            make.top.equalTo(horizontalLine1.snp.bottom)
+            make.left.equalTo(earnestmoneyV.snp.right)
+            make.height.equalTo(itemH)
+            make.width.equalTo(SCREEN_WIDTH/2.0)
+        }
+        horizontalLine2.snp.makeConstraints { make in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(earnestmoneyV.snp.bottom)
+            make.height.equalTo(1)
+        }
+        profitmoneyV.snp.makeConstraints { make in
+            make.top.equalTo(horizontalLine2.snp.bottom)
+            make.left.equalToSuperview()
+            make.height.equalTo(itemH)
+            make.width.equalTo(SCREEN_WIDTH/2.0)
+        }
+        borrowmoneyV.snp.makeConstraints { make in
+            make.top.equalTo(horizontalLine2.snp.bottom)
+            make.left.equalTo(profitmoneyV.snp.right)
+            make.height.equalTo(itemH)
+            make.width.equalTo(SCREEN_WIDTH/2.0)
+        }
+        horizontalLine3.snp.makeConstraints { make in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(profitmoneyV.snp.bottom)
+            make.height.equalTo(1)
+        }
+        verticalLine.snp.makeConstraints { make in
+            make.top.equalTo(horizontalLine1.snp.bottom)
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(horizontalLine3.snp.top)
+            make.width.equalTo(1)
+        }
+        resetV.snp.makeConstraints { make in
+            make.left.equalToSuperview().offset(LR_Margin)
+            make.top.equalTo(horizontalLine3.snp.bottom).offset(12)
+            make.right.equalTo(self.snp.centerX).offset(-6)
+            make.height.equalTo(31)
+        }
+        transferV.snp.makeConstraints { make in
+            make.right.equalToSuperview().offset(-LR_Margin)
+            make.top.equalTo(horizontalLine3.snp.bottom).offset(12)
+            make.left.equalTo(self.snp.centerX).offset(6)
+            make.height.equalTo(31)
+        }
+        bottomLine.snp.makeConstraints { make in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(transferV.snp.bottom).offset(12)
+            make.height.equalTo(5)
+            make.bottom.equalToSuperview().offset(-1)
+        }
+//        activiV.snp.makeConstraints { make in
+//            make.left.equalToSuperview().offset(LR_Margin)
+//            make.right.equalToSuperview().offset(-LR_Margin)
+//            make.top.equalTo(bottomLine.snp.bottom).offset(12)
+//            make.height.equalTo(35)
+//            make.bottom.equalToSuperview().offset(-10)
+//        }
     }
 }

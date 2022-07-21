@@ -94,19 +94,19 @@ extension FuturesEntrustVC : JXPagingViewDelegate {
     
     func pagingView(_ pagingView: JXPagingView, initListAtIndex index: Int) -> JXPagingViewListViewDelegate {
         if index == 0 {
-            let vc = EntrustChildAllVC()
+            let vc = FuturesChildCurrentEntusVC()
             return vc
         }else if index == 1{
             let vc = FuturesChildHisEntrusVC()
             return vc
         }else if index == 2 {
-            let vc = FuturesChildHisEntrusVC()
+            let vc = FuturesChildHisMakeVC()
             return vc
         }else if index == 3 {
             let vc = FuturesChildFlowwaterVC()
             return vc
         }else{
-            let vc = EntrustChildMakeVC()
+            let vc = FuturesChildFlowwaterVC()
             return vc
         }
     }

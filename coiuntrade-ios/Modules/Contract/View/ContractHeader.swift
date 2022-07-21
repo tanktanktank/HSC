@@ -21,6 +21,14 @@ class ContractHeader: UIView {
             self.marketsViewModel.numberOfRow = rowNumber
         }
     }
+    
+    var dateType: XLKLineDateType = .min
+    var lineType: XLKLineType = .candleLineType
+    var littleKLineList: [XLKLineModel] = Array(){
+        didSet{
+            kLineView.configureView(data: littleKLineList, isNew: true, mainDrawString: KLINEMA, secondDrawString: KLINEHIDE, dateType: dateType, lineType: lineType)
+        }
+    }
 
     override init(frame: CGRect) {
 
@@ -30,13 +38,17 @@ class ContractHeader: UIView {
         subscribSocket()
         rowNumber = 6
     }
+
+    func updateSecondHeight(){
+        kLineView.updateSecondHeight()
+    }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
     fileprivate let warehouseBtn = DinOptionView(type: .btnType)
-    fileprivate let marginBtn = DinOptionView(type: .normal)
+    fileprivate let leverBtn = DinOptionView(type: .btnType)
     fileprivate let typeBtn = DinOptionView(type: .normal)
 
     let leftView = UIView()
@@ -60,10 +72,10 @@ class ContractHeader: UIView {
 //                self.comfirmBtn.setTitle("tv_login".localized(), for: .normal)
 //            }
 //
-//            if !button.isSelected{
-//
-//                self.isBuy = true
-//            }
+            if !button.isSelected{
+
+                self.isBuy = true
+            }
         } .disposed(by: disposeBag)
         return button
     }()
@@ -79,6 +91,7 @@ class ContractHeader: UIView {
         button.setTitle("tv_trade_sell".localized(), for: .normal)
         button.rx.tap.subscribe { _ in
             
+            
 //            if userManager.isLogin {
 //
 //                self.comfirmBtn.setTitle("tv_trade_sell".localized(), for: .normal)
@@ -86,13 +99,26 @@ class ContractHeader: UIView {
 //                self.comfirmBtn.setTitle("tv_login".localized(), for: .normal)
 //            }
 //
-//            if !button.isSelected{
-//
-//                self.isBuy = false
-//            }
+            if !button.isSelected{
+
+                self.isBuy = false
+            }
         } .disposed(by: disposeBag)
         return button
     }()
+    
+    var isBuy = false {
+        
+        didSet{
+            if isBuy {
+                sellBtn.isSelected = false
+                buyBtn.isSelected = true
+            }else{
+                sellBtn.isSelected = true
+                buyBtn.isSelected = false
+            }
+        }
+    }
     
     lazy var priceInputView : TradeInputView = {
         
@@ -110,17 +136,63 @@ class ContractHeader: UIView {
     }()
 
     let amountView = FuturesAmountInputView()
-    lazy var slider : UISlider = {
-        let slider = UISlider()
-        slider.setThumbImage(UIImage(named: "futures_slider"), for: .normal)
-//        slider.minimumTrackTintColor = .red
-//        slider.maximumTrackTintColor = .blue
-        slider.value = 0.0
-        slider.addTarget(self, action: #selector(sliderChange(_:)), for: .valueChanged)
-        slider.setMinimumTrackImage(UIImage(named: "futures_slider_selected"), for: .normal)
-        slider.setMaximumTrackImage(UIImage(named: "futures_slider_unselected"), for: .normal)
-        return slider
+    
+    lazy var slider : FuturesSliderView = FuturesSliderView()
+
+    lazy var littleKlineView : UIView = {
+        let view = UIView()
+        view.addSubview(timeView)
+        view.addSubview(kLineView)
+        view.clipsToBounds = true
+        return view
     }()
+    lazy var timeView: UIScrollView = {
+        let timeView = UIScrollView.init(frame: CGRect(x: 0, y: 0, width: SCREEN_WIDTH, height: 24))
+        timeView.backgroundColor = .black.withAlphaComponent(0.88) //UIColor.xlChart.color(rgba: "#243245")
+        
+        let times = [KLINETIMEMinLine, KLINETIME3Min, KLINETIME5Min, KLINETIME15Min, KLINETIME30Min, KLINETIME1Hour,
+                     KLINETIME2Hour, KLINETIME4Hour, KLINETIME6Hour, KLINETIME8Hour, KLINETIME12Hour, KLINETIME1Day,
+                     KLINETIME3Day, KLINETIME1Week, KLINETIME1Month]
+        let btnW: CGFloat = SCREEN_WIDTH / 6
+        timeView.contentSize = CGSize(width: Int(btnW) * times.count, height: 1)
+        var idx: Int = 0
+        
+        for str in times {
+            let btn = UIButton()
+            btn.setTitle(str, for: .normal)
+            btn.titleLabel?.font = UIFont.systemFont(ofSize: 13)
+            btn.setTitleColor(UIColor.hexColor("ebebeb"), for: .normal)
+            btn.setTitleColor(UIColor.hexColor("fcd283"), for: .selected)
+            btn.frame = CGRect(x: CGFloat(idx) * btnW, y: 0, width: btnW, height: timeView.bounds.size.height)
+            btn.tag = idx
+            timeView.addSubview(btn)
+            self.timeBtnArray.append(btn)
+            if(idx == 0){
+                btn.isSelected = true
+            }
+            idx += 1
+        }
+        return timeView
+    }()
+    lazy var kLineView: XLKLineView = {
+        
+        let kLineView = XLKLineView(frame: CGRect(x: 0, y: 20, width: SCREEN_WIDTH, height: 210))
+        kLineView.backgroundColor = UIColor.xlChart.color(rgba: "#1E1E1E")
+        return kLineView
+    }()
+    lazy var timeBtnArray = [UIButton]()
+    
+//    lazy var slider : UISlider = {
+//        let slider = UISlider()
+//        slider.setThumbImage(UIImage(named: "futures_slider"), for: .normal)
+////        slider.minimumTrackTintColor = .red
+////        slider.maximumTrackTintColor = .blue
+//        slider.value = 0.0
+//        slider.addTarget(self, action: #selector(sliderChange(_:)), for: .valueChanged)
+//        slider.setMinimumTrackImage(UIImage(named: "futures_slider_Min_bg"), for: .normal)
+//        slider.setMaximumTrackImage(UIImage(named: "futures_slider_Max_bg"), for: .normal)
+//        return slider
+//    }()
     
     private let tpslBtn : LeftImgRightTitleButton = {
         let tpslBtn = LeftImgRightTitleButton()
@@ -163,13 +235,20 @@ class ContractHeader: UIView {
         return availabelCurrency
     }()
     
-    private let comfirmBtn: ZQButton = {
+    lazy var comfirmBtn: ZQButton = {
         let comfirmBtn = ZQButton()
         comfirmBtn.corner(cornerRadius: 3)
         comfirmBtn.backgroundColor = .hexColor("02C078")
         comfirmBtn.setTitleColor(.white, for: .normal)
         comfirmBtn.titleLabel?.font = FONTM(size: 14)
         comfirmBtn.setTitle("登录", for:  .normal)
+        
+        comfirmBtn.rx.tap.subscribe ({ _ in
+            
+            tipManager.showSingleAlert(message: "sdhsdhhkhjshfsafjhasjkdfhasjkfhaskakfhkefioweio oiedclasklash  lkajsklhdslfas")
+            
+        }).disposed(by: self.disposeBag)
+
         return comfirmBtn
     }()
 
@@ -178,11 +257,20 @@ class ContractHeader: UIView {
 extension ContractHeader{
     
     func setUI()  {
+        setklineViewUI()
         setLeftUI()
         setRightUI()
-        
     }
     
+    func setklineViewUI(){
+        
+        self.addSubview(littleKlineView)
+        littleKlineView.snp.makeConstraints { make in
+            make.left.right.equalToSuperview()
+            make.top.equalToSuperview()
+            make.height.equalTo(0)
+        }
+    }
     
     func setLeftUI() {
         
@@ -196,7 +284,7 @@ extension ContractHeader{
         
         self.addSubview(rightView)
         rightView.addSubview(warehouseBtn)
-        rightView.addSubview(marginBtn)
+        rightView.addSubview(leverBtn)
         rightView.addSubview(buyBtn)
         rightView.addSubview(sellBtn)
         rightView.addSubview(typeBtn)
@@ -211,7 +299,7 @@ extension ContractHeader{
         rightView.addSubview(comfirmBtn)
         
         warehouseBtn.title = "全仓"
-        marginBtn.dataSource = ["5x","10x","50x","75x","100x"]
+        leverBtn.title = "100x"
         typeBtn.textAligment = .center
         typeBtn.dataSource = ["限价单","市价单","限价止盈止损","市价止盈止损"]
         amountView.leftBtnStr = "BTC"
@@ -219,6 +307,13 @@ extension ContractHeader{
         amountView.leftplaceholder = "Amount(BTC)"
         amountView.rightPlaceholder = "Amount(USDT)"
 
+        slider.minimumTrackImage = UIImage(named: "futures_slider_Min_bg")
+        slider.maximumTrackImage = UIImage(named: "futures_slider_Max_bg")
+        slider.titles =  ["","","","",""]
+        slider.isShowSliderText = false
+        slider.isStepTouch = true
+
+        
         addRightConstraint()
     }
     func addLeftConstraint(){
@@ -227,8 +322,9 @@ extension ContractHeader{
 //        leftView.backgroundColor = .yellow
         leftView.snp.makeConstraints { make in
             
+            make.top.equalTo(littleKlineView.snp.bottom)
             make.left.equalTo(margin)
-            make.top.bottom.equalToSuperview()
+            make.bottom.equalToSuperview()
             make.right.equalToSuperview().multipliedBy(136.0/(375-40))
         }
         countDownView.snp.makeConstraints { make in
@@ -245,11 +341,20 @@ extension ContractHeader{
             make.left.right.bottom.equalToSuperview()
         }
     }
+    
+    func updateConstraint(isShow: Bool){
+        
+        littleKlineView.snp.updateConstraints { make in
+            make.height.equalTo((isShow ? 234 : 0))
+        }
+    }
+    
     func addRightConstraint(){
         rightView.snp.makeConstraints { make in
             
+            make.top.equalTo(littleKlineView.snp.bottom)
             make.left.equalTo(countDownView.snp.right).offset(10)
-            make.top.bottom.equalToSuperview()
+            make.bottom.equalToSuperview()
             make.right.equalToSuperview().offset(-margin)
         }
         warehouseBtn.snp.makeConstraints { make in
@@ -259,7 +364,7 @@ extension ContractHeader{
             make.height.equalTo(24)
             make.width.equalToSuperview().multipliedBy(0.5).offset(-5)
         }
-        marginBtn.snp.makeConstraints { make in
+        leverBtn.snp.makeConstraints { make in
             
             make.right.equalToSuperview()
             make.top.equalTo(14)
@@ -360,15 +465,27 @@ extension ContractHeader{
             print("\(isDirectionUp)")
         }
         
+        leverBtn.clickBlock { isDirectionUp in
+            
+            self.leverClick()
+            print("\(isDirectionUp)")
+        }
+        
+        slider.valueChange = { value in
+            
+            print( "获取到的 \(value)")
+        }
+
+        
     }
-    ///slider滑动事件
-    @objc private func sliderChange(_ slider: UISlider) {
-        let value = slider.value
-        print(value)
-    }
+//    ///slider滑动事件
+//    @objc private func sliderChange(_ slider: UISlider) {
+//        let value = slider.value
+//        print(value)
+//    }
     
     @objc func tapTypeV(){
-        let actionSheet = SelectFuturesSheet()
+        let actionSheet = FuturesSelectPositionSheet()
 
         actionSheet.clickCellAtion = { index in
             print("\(index)")
@@ -376,6 +493,15 @@ extension ContractHeader{
         actionSheet.show()
     }
 
+    @objc func leverClick(){
+        
+        let actionSheet = FuturesLeverSheet()
+
+    //            actionSheet.clickCellAtion = { index in
+    //                print("\(index)")
+    //            }
+        actionSheet.show()
+    }
 
     func subscribSocket()  {
         self.marketsViewModel.reqModel.coin = "BTC"
@@ -484,124 +610,3 @@ fileprivate class DinLabel : UILabel{
          fatalError("init(coder:) has not been implemented")
      }
  }
-//用于合约界面的点击弹出框
-fileprivate class DinOptionView : WLOptionView{
-    
-    convenience init(type:InputType = .normal) {
-        
-        self.init(frame: .zero, type: type)
-    }
-    
-   override var dataSource:[String] {
-        
-        didSet {
-            
-            if type == .normal  {
-                if rowheight != 0 {
-                    self.tableViewHeight = CGFloat(CGFloat(self.dataSource.count) * rowheight)
-                }else{
-                    self.tableViewHeight = CGFloat(self.dataSource.count * cellHeight)
-                }
-            }else{
-                tableViewHeight = 210
-            }
-            self.title = dataSource.first
-        }
-    }
-
-    var selectAt : (((Int)->()))?
-    
-    override init(frame: CGRect, type: InputType) {
-        super.init(frame: frame, type: type)
-        
-        self.isHaveDistance = true
-        self.titleColor = .white
-        self.backgroundColor = .hexColor("2D2D2D")
-        self.cornerRadius = 4
-        self.cellHeight = 40
-        self.rightImgWidth = 7
-        self.textAligment = .left
-        self.titleLabel.font = FONTR(size: 12)
-        self.animationTime = 0.1
-        self.titleFont = FONTDIN(size: 11)
-        self.selectedCallBack {[weak self] (viewTemp, index) in
-
-            self?.selectIndex = index
-            self?.selectAt?(index)
-        }
-    }
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-
- class LeftImgRightTitleButton : UIButton{
-    
-    override var isSelected: Bool {
-     
-        didSet{
-            
-            if isSelected {
-                
-                myImageView.image = selectImg ?? nomalImg ?? image
-            }else{
-                myImageView.image = nomalImg ?? image
-            }
-        }
-    }
-    private var nomalImg : UIImage?
-    private var selectImg : UIImage?
-    override func setImage(_ image: UIImage?, for state: UIControl.State) {
-
-        if state == .selected {
-            selectImg = image
-        }else {
-            nomalImg = image
-            self.image = image
-        }
-    }
-    
-    var font : UIFont = FONTDIN(size: 12) {  didSet{  myTitleLabel.font = font }}
-    var title : String? { didSet{
-            
-            myTitleLabel.text = title
-            updateContaints() } }
-    var margin : Int = 10 { didSet { updateContaints() } }
-    var textColor : UIColor = .hexColor("989898") { didSet{ myTitleLabel.textColor = textColor } }
-    var image : UIImage? { didSet{
-            myImageView.image = image
-            updateContaints() } }
-    var imageWidth : CGFloat = 20 { didSet{
-            updateContaints() } }
-
-    func updateContaints() {
-        
-        if ( image != nil ||  nomalImg != nil ), let _ = title  {
-            myImageView.snp.remakeConstraints({ make in
-                make.left.equalToSuperview()
-                make.height.width.equalTo(imageWidth)
-                make.centerY.equalToSuperview()
-            })
-            myTitleLabel.snp.remakeConstraints({ make in
-                make.left.equalTo(myImageView.snp.right).offset(margin)
-                make.right.equalTo(-10)
-                make.centerY.equalToSuperview()
-            })
-        }}
-    private let myTitleLabel = UILabel()
-    private let myImageView = UIImageView()
-
-    override init(frame: CGRect) {
-        
-        super.init(frame: frame)
-                
-        self.addSubview(myTitleLabel)
-        self.addSubview(myImageView)
-        myTitleLabel.textColor = textColor
-        myTitleLabel.font = font
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}

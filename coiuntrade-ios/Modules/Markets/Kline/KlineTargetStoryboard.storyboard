@@ -12,7 +12,6 @@
         <!--Kline Tap Main Controller-->
         <scene sceneID="jmw-Fd-m0e">
             <objects>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="IhG-yY-CoY" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
                 <viewController storyboardIdentifier="KlineTapMainController" id="hvy-aC-k4y" customClass="KlineTapMainController" customModule="coiuntrade_ios" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Hrm-ND-17e">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
@@ -204,6 +203,7 @@
                     </view>
                     <navigationItem key="navigationItem" id="GJB-3t-Dcg"/>
                 </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="IhG-yY-CoY" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-533" y="1369"/>
         </scene>

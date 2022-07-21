@@ -12,14 +12,8 @@ import RxSwift
 
 class WebViewController: BaseViewController {
     
-    let disposeBag = DisposeBag()
     
-    @objc lazy var wkWebView : WKWebView = {
-        let webView = WKWebView()
-        webView.frame = CGRect(x: 0, y: 0, width: self.view.width, height: self.view.height)
-        webView.scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: SafeAreaTop, right: 0)
-        return webView
-    }()
+    
     /* 忽略标题 */
     var ignoreTitle : Bool = true
     
@@ -46,7 +40,54 @@ class WebViewController: BaseViewController {
         self.wkWebView.load(URLRequest(url: URL(string: urlStr) ?? URL(fileURLWithPath: "")))
     }
     
+
+    func dealwithToken() {
+        
+//        let token =  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOjUzLCJuaWNrbmFtZSI6ImJuNTIyMjgzIiwicGhvbmUiOiIxNzY4ODkxMjg0OSIsImVtYWlsIjoiIiwiZXhwIjoxNjU4MzA2Njk1LCJpc3MiOiJydWllY2Jhc3MifQ.ynsQFl-qiaEmorR-iHLstXsZdb-Z1I9cifEoe83APRw"
+        let token = Archive.getToken()
+        let jsStr = "setCIOSToken" + "('" + token + "')"
+        wkWebView.evaluateJavaScript(jsStr) { any, error in
+//            print("调用完成")
+        }
+    }
+    
+    func webConfiguration() -> WKWebViewConfiguration{
+        
+        let preferences = WKPreferences()
+        preferences.javaScriptEnabled = true
+        let configuration = WKWebViewConfiguration()
+        configuration.preferences = preferences
+        configuration.selectionGranularity = WKSelectionGranularity.character
+        configuration.userContentController = WKUserContentController()
+        configuration.userContentController.add(WeakScriptMessageDelegate(self), name: "getCToken")
+        return configuration
+    }
+    
+    
+    private let disposeBag = DisposeBag()
+    
+    @objc lazy var wkWebView : WKWebView = {
+        let webFrame = CGRect(x: 0, y: 0, width: self.view.width, height: self.view.height)
+        let webView = WKWebView(frame: webFrame, configuration: webConfiguration())
+        webView.scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: SafeAreaTop, right: 0)
+        return webView
+    }()
 }
+
+
+extension WebViewController: WKScriptMessageHandler {
+
+    func userContentController(_ userContentController: WKUserContentController,
+                               didReceive message: WKScriptMessage) {
+        switch message.name {
+            case "getCToken":
+                dealwithToken()
+        default:
+            break
+        }
+    }
+}
+
 // MARK: - WKNavigationDelegate
 extension WebViewController : WKNavigationDelegate{
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
@@ -63,7 +104,6 @@ extension WebViewController : WKNavigationDelegate{
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
 //        if webView.url?.absoluteString.hasPrefix("http://callback/") {//腾讯地图web组件选取地址
 //            let dict = webView.url?.absoluteString
-            
 //        }
     }
 }
@@ -124,9 +164,4 @@ extension WebViewController {
         }.disposed(by: disposeBag)
     
     }
-    
-    
-    
-    
-    
 }

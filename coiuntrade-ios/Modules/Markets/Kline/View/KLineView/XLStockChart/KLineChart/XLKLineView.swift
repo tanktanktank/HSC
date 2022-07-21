@@ -185,6 +185,13 @@ open class XLKLineView: UIView, XLDrawLayerProtocol {
         }
     }
     
+    func updateSecondHeight(){
+        self.theme.bottomChartHeight = 0
+        self.topChartTextLayer.theme.bottomChartHeight = 0
+        self.bottomChartTextLayer.theme.bottomChartHeight = 0
+        self.kLine.theme.bottomChartHeight = 0
+    }
+    
     /// 首次加载需要计算MA VOL的值
     func configureMidText() {
         

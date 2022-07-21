@@ -93,9 +93,13 @@ extension HomeVC : HomeHeadViewDelegate{
     //MARK: 点击主流币
     func clickMainCoin(model: CoinModel) {
         
-        let controller = getViewController(name: "KlineStoryboard", identifier: "KlineDealController") as! KlineDealController
-        controller.model = model
-        self.navigationController?.pushViewController(controller, animated: true)
+        let coinDetailVC = HSCoinDetailVC()
+        coinDetailVC.model = model
+        navigationController?.pushViewController(coinDetailVC, animated: true)
+        
+//        let controller = getViewController(name: "KlineStoryboard", identifier: "KlineDealController") as! KlineDealController
+//        controller.model = model
+//        self.navigationController?.pushViewController(controller, animated: true)
     }
     
     //MARK: 点击用滚动币种

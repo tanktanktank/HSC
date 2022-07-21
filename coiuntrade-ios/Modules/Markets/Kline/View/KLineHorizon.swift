@@ -8,8 +8,15 @@
 import UIKit
 import WebKit
 
+typealias KLineHoriViewPass = (Int)->()
+
 class KLineHoriView: UIView {
 
+    var curMain = "MA"
+    var curTime = "15m"
+    weak var model : CoinModel!
+    var pass:KLineHoriViewPass?
+    private var isShowDraw = false
     private var disposeBag = DisposeBag()
 
     override init(frame: CGRect) {
@@ -21,11 +28,12 @@ class KLineHoriView: UIView {
         self.addSubview(self.coinView)
         self.addSubview(self.timeView)
         self.addSubview(self.indexView)
-        let path = "http://8.218.110.85:6225/#/announcement/kline"
+    
+        let path = "http://8.218.110.85:6225/#/"
+//        let path = "http://192.168.3.44:8080/#/announcement/kline"
         let url = URL.init(string: path)
         let request = URLRequest.init(url: url!)
         webView.load(request)
-        
         setupEvent()
     }
 
@@ -33,10 +41,11 @@ class KLineHoriView: UIView {
         
         self.backBtn.rx.tap
             .subscribe(onNext: { [weak self] in
-
-                UIView.animate(withDuration: 0.18, delay: 0.0) {
-                    self!.frame = CGRect(x: SCREEN_WIDTH, y: 0, width: self!.width, height: self!.height)
-                }
+                
+                self?.pass?(1)
+//                UIView.animate(withDuration: 0.18, delay: 0.0) {
+//                    self!.frame = CGRect(x: SCREEN_WIDTH, y: 0, width: self!.width, height: self!.height)
+//                }
             }).disposed(by: disposeBag)
         
         
@@ -44,7 +53,7 @@ class KLineHoriView: UIView {
         let choTimeButton = Observable.from(
             buttonTimes.map { button in button.rx.tap.map {button} }
         ).merge()
-        choTimeButton.map { value in
+        choTimeButton.map {[weak self] value in
             
             for button in buttonTimes {
                 if button.tag == value.tag{
@@ -53,21 +62,21 @@ class KLineHoriView: UIView {
                     button.isSelected = false
                 }
             }
-//            switch value.tag {
-//                case 1:
-//                    self.marketsViewModel.reqModel.kline_type = "3m"
-//                default:
-//                    self.marketsViewModel.reqModel.kline_type = "1m"
-//            }
+            
+            let klineType = self!.timeMap[value.titleLabel?.text ?? "15分钟"]
+            self?.curTime = klineType!
+            self!.dealwithKline(coin: self!.model.coin, currency: self!.model.currency, kline_type: klineType!, mainName: self!.indexMap[self!.curMain]!, secondName: self!.indexMap["VOL"]!, isMain: "1", isTime: "1", isFirst: "0")
         }
         .subscribe(onNext: {value in
         }).disposed(by: disposeBag)
         
+        
+        ///主图指标事件
         let buttonIndexs = self.indexBtnArray.map { $0 }
         let choIndexButton = Observable.from(
             buttonIndexs.map { button in button.rx.tap.map {button} }
         ).merge()
-        choIndexButton.map { value in
+        choIndexButton.map {[weak self] value in
             
             for button in buttonIndexs {
                 if button.tag == value.tag{
@@ -76,14 +85,72 @@ class KLineHoriView: UIView {
                     button.isSelected = false
                 }
             }
+            let mainIndex = self!.indexMap[value.titleLabel?.text ?? "MA"]!
+            self!.curMain = value.titleLabel?.text ?? "MA"
+            self!.dealwithKline(coin: self!.model.coin, currency: self!.model.currency, kline_type: self!.curTime, mainName: mainIndex, secondName: self!.indexMap["VOL"]!, isMain: "1", isTime: "0", isFirst: "0")
+        }
+        .subscribe(onNext: {value in
+        }).disposed(by: disposeBag)
+        
+        
+        ///幅图指标事件
+        let btnSecondIndexs = self.indexSecondBtns.map { $0 }
+        let selSecIndexBtn = Observable.from(
+            btnSecondIndexs.map { button in button.rx.tap.map {button} }
+        ).merge()
+        selSecIndexBtn.map {[weak self] value in
+            
+            let tapIndex = value.titleLabel?.text ?? "VOL"
+            
+            if(tapIndex == "画"){
+                
+                self?.dealWithDraw()
+            }else{
+                var idx = 0
+                var isExist = false
+                for secondIndex in self!.selectSeconds{
+                    
+                    if(secondIndex == tapIndex){
+                        self!.selectSeconds.remove(at: idx)
+                        isExist = true
+                        break
+                    }
+                    idx += 1
+                }
+                if(!isExist){
+                    self?.selectSeconds.append(tapIndex)
+                }
+                for button in btnSecondIndexs {
+                    button.isSelected = false
+                    if(self!.selectSeconds.contains((button.titleLabel?.text)!)){
+                        button.isSelected = true
+                    }
+                }
+                 
+                self!.dealwithKline(coin: self!.model.coin, currency: self!.model.currency, kline_type: self!.curTime, mainName: self!.indexMap[self!.curMain]!, secondName: self!.indexMap[tapIndex]!, isMain: "0", isTime: "0", isFirst: "0")
+            }
+
         }
         .subscribe(onNext: {value in
         }).disposed(by: disposeBag)
     }
 
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    func updateCoin(coinName: String, price: String , percent: String , isUp: Bool){
+        
+        let nameLab = coinView.viewWithTag(1024) as! UILabel
+        let priceLab = coinView.viewWithTag(1025) as! UILabel
+        let percentLab = coinView.viewWithTag(1026) as! UILabel
+        nameLab.text = coinName
+        priceLab.text = price
+        percentLab.text = percent
+        
+        if(isUp){
+            priceLab.textColor = UIColor.hexColor("F03851",alpha: 0.9)
+            percentLab.textColor = UIColor.hexColor("F03851",alpha: 0.9)
+        }else{
+            priceLab.textColor = UIColor.hexColor("02C078",alpha: 0.9)
+            percentLab.textColor = UIColor.hexColor("02C078",alpha: 0.9)
+        }
     }
     
     func updateWebFrame(){
@@ -107,15 +174,39 @@ class KLineHoriView: UIView {
         indexView.addCorner(conrners: .topRight, radius: 4)
     }
     
-    func dealwithKline() {
+    func dealwithKline(coin: String, currency: String, kline_type: String, mainName: String, secondName: String, isMain: String, isTime: String, isFirst: String) {
 
-        var newJS = [String: String].init()
-        newJS["coin"] = "BTC"
-        newJS["currency"] = "USDT"
-        newJS["kline_type"] = "30m"
+        //分钟:m  小时:h  天:d  周:w
+        //第一次进来 isFirst = 1取所有指标出来展示 secondName=“vol,macd” secondName="vol"这里传单个
+        // 先判断 isFirst,isTime, isMain这个最后 判断更新主幅图
+        /*
+         // 先判断 isFirst,isTime, isMain这个最后 判断更新主幅图
+         isFirst = 1 代表 第一次进来，，取所有数据出来 展示，就不判断 isTime,isMain了
+         isTime = 1 事件交互，，，就不用判断 isMain了，直接取时间 出来更新
+         isMain = 1 最后判断，，到了这里，，isMain = 1 取主图指标 出来操作，，= 0 取幅图 指标出来操作
+         */
+        //{  "mainName": "MA" ,  "secondName":"VOL" , "kline_type":"15m" , "isFirst":"1" ,"isMain":"1","isTime":"1" , "coin":"BTC","currency":"USDT"}
+        var newJS = [String: String]()
+        newJS["coin"] = coin//"BTC"
+        newJS["currency"] = currency//"USDT"
+        newJS["kline_type"] = kline_type//"1h"
+        newJS["mainName"] = mainName//self.indexMap[KLINEBOLL]
+        newJS["secondName"] = secondName//self.indexMap[KLINEKDJ]
+        newJS["isMain"] = isMain//"1"
+        newJS["isTime"] = isTime//"1"
+        newJS["isFirst"] = isFirst//"1"
+
         guard let data = try? JSONSerialization.data(withJSONObject: newJS, options: []) else { return }
         let jsonString:String = NSString(data:data as Data,encoding: String.Encoding.utf8.rawValue)! as String
         let jsStr = "upShowKline" + "(" + jsonString + ")"
+        webView.evaluateJavaScript(jsStr, completionHandler: nil)
+    }
+    
+    func dealWithDraw(){
+        
+        self.isShowDraw = !self.isShowDraw
+        let show = self.isShowDraw ? "1" : "0"
+        let jsStr = "showDraw" + "(" + show + ")"
         webView.evaluateJavaScript(jsStr, completionHandler: nil)
     }
     
@@ -130,7 +221,6 @@ class KLineHoriView: UIView {
         configuration.selectionGranularity = WKSelectionGranularity.character
         configuration.userContentController = WKUserContentController()
         configuration.userContentController.add(WeakScriptMessageDelegate(self), name: "getDataFromNativeIos")
-
 
         var webView = WKWebView(frame: CGRect(x: 0,
                                               y: 0,
@@ -152,22 +242,25 @@ class KLineHoriView: UIView {
     
     lazy var coinView: UIView = {
         let view = UIView(frame: CGRect(x: 0, y: 0, width: 30, height: SCREEN_HEIGHT - 44 - 64))
-        view.backgroundColor = .lightGray
+//        view.backgroundColor = .lightGray
         
         let nameLab = UILabel()
         nameLab.font = UIFont.systemFont(ofSize: 15)
         nameLab.textColor = UIColor.hexColor("ffffff")
         nameLab.text = "BTC/USDT"
+        nameLab.tag = 1024
         
         let priceLab = UILabel()
         priceLab.font = UIFont.systemFont(ofSize: 13)
         priceLab.textColor = UIColor.hexColor("db354c")
         priceLab.text = "2600"
+        priceLab.tag = 1025
         
         let amplitudeLab = UILabel()
         amplitudeLab.font = UIFont.systemFont(ofSize: 13)
         amplitudeLab.textColor = UIColor.hexColor("db354c")
         amplitudeLab.text = "+8.88%"
+        amplitudeLab.tag = 1026
         
         view.addSubview(nameLab)
         view.addSubview(priceLab)
@@ -218,7 +311,7 @@ class KLineHoriView: UIView {
             btn.tag = idx
             timeView.addSubview(btn)
             self.timeBtnArray.append(btn)
-            if(idx == 2){
+            if(idx == 1){
                 btn.isSelected = true
             }
             idx += 1
@@ -246,8 +339,12 @@ class KLineHoriView: UIView {
             btn.frame = CGRect(x: 0, y: idx * btnH, width: btnW, height: btnH)
             btn.tag = idx
             scView.addSubview(btn)
-            self.indexBtnArray.append(btn)
-            if(idx == 2){
+            if(idx < 2){
+                self.indexBtnArray.append(btn)
+            }else{
+                self.indexSecondBtns.append(btn)
+            }
+            if(idx == 0 || idx == 2){
                 btn.isSelected = true
             }
             idx += 1
@@ -255,8 +352,31 @@ class KLineHoriView: UIView {
         return scView
     }()
     
+    
     lazy var timeBtnArray = [UIButton]()
-    lazy var indexBtnArray = [UIButton]()
+    lazy var indexBtnArray = [UIButton]() //主图集合
+    lazy var indexSecondBtns = [UIButton]() //幅图集合
+
+    lazy var selectSeconds = [String]()
+    
+    lazy var indexMap:[String:String] = {
+       
+        let map = [KLINE_MA:"Moving Average", KLINE_BOLL:"Bollinger Bands", KLINE_VOL:"Volume",
+                 KLINE_MACD:"MACD", KLINE_KDJ:"Stochastic", KLINE_RSI:"Relative Strength Index"]
+        
+        return map
+    }()
+    lazy var timeMap:[String:String] = {
+       
+        let map = [KLINETIMEMinLine:"1m", KLINETIME15Min:"15m", KLINETIME1Hour:"1h",
+                     KLINETIME4Hour:"4h", KLINETIME1Day:"1d", KLINETIME1Week:"1w"]
+        
+        return map
+    }()
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 }
 
 extension KLineHoriView: WKNavigationDelegate {
@@ -278,7 +398,8 @@ extension KLineHoriView: WKScriptMessageHandler {
         ///message.name是约定好的方法名,message.body是携带的参数
         switch message.name {
         case "getDataFromNativeIos":
-            dealwithKline()
+            //TODO: 传进来的数据要动态
+            dealwithKline(coin: self.model.coin, currency: self.model.currency, kline_type: self.curTime, mainName: self.indexMap[self.curMain]!, secondName: self.indexMap["VOL"]!, isMain: "1", isTime: "1", isFirst: "1")
         default:
             break
         }

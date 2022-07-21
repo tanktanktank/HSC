@@ -40,6 +40,17 @@ class KLineMoreTimeV: UIView {
         bgView.addGestureRecognizer(tap)
         return bgView
     }()
+    
+    lazy var backgroundV: UIView = {
+        
+        let bgView = UIView()
+        bgView.tag = 512
+        bgView.frame = CGRect(x: 0, y: 0, width: self.width , height: self.superview!.height)
+        bgView.backgroundColor = .black.withAlphaComponent(0.66)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(bgClick))
+        bgView.addGestureRecognizer(tap)
+        return bgView
+    }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -54,6 +65,15 @@ class KLineMoreTimeV: UIView {
     // MARK: - Action
     @objc func bgClick() {
         hide()
+    }
+    
+    
+    func upShow(){
+        
+    }
+    
+    func upHide(){
+        
     }
 
     func show(showy: CGFloat){

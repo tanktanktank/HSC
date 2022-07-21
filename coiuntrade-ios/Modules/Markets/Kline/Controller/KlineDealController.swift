@@ -8,6 +8,7 @@
 import UIKit
 import Starscream
 import RxSwift
+import SwiftUI
 
 class KlineDealController: UIViewController,UITableViewDelegate, UITableViewDataSource {
 
@@ -96,7 +97,7 @@ class KlineDealController: UIViewController,UITableViewDelegate, UITableViewData
     var currentPrice : String = ""
     
     var result : Ticker24Model = Ticker24Model()
-    
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -498,6 +499,11 @@ class KlineDealController: UIViewController,UITableViewDelegate, UITableViewData
         self.btnHorizon.rx.tap
             .subscribe(onNext: {
                 
+                //TODO: 传递数据要动态
+                self.horiKline.model = self.model
+                self.horiKline.curMain = "MA"
+                self.horiKline.selectSeconds = ["VOL"]
+                self.horiKline.curTime = "15m"
                 UIView.animate(withDuration: 0.18, delay: 0.0) {
                     self.horiKline.frame = CGRect(x: 0, y: 0, width: self.horiKline.width, height: self.horiKline.height)
                 }
@@ -747,6 +753,8 @@ class KlineDealController: UIViewController,UITableViewDelegate, UITableViewData
                 self.lblPrice.textColor = UIColor.hexColor("FFFFFF",alpha: 0.9)
             }
             self.currentPrice = (datas[1] as? String) ?? ""
+            
+            self.horiKline.updateCoin(coinName: self.model.coin + "/" + self.model.currency, price: self.lblPrice.text! , percent: self.lblPercentage.text!, isUp: (tmp > tmp1))
         }).disposed(by: disposeBag)
     }
     
@@ -993,8 +1001,8 @@ class KlineDealController: UIViewController,UITableViewDelegate, UITableViewData
         moreTimeView.clipsToBounds = true
         moreTimeView.pass = { [weak self] updateValue in
             
-            let tipStr = updateValue["time"] as! String
-            let klineType = updateValue["value"] as! String
+            let tipStr = updateValue["time"]!
+            let klineType = updateValue["value"]!
             self!.viewModel.reqModel.kline_type = klineType
             let result: PublishSubject<Any> = self!.viewModel.requestMarketKline()
             result.subscribe(onNext: { model in
@@ -1059,6 +1067,7 @@ class KlineDealController: UIViewController,UITableViewDelegate, UITableViewData
         let horiV = KLineHoriView()
         horiV.frame = CGRect(x: SCREEN_WIDTH, y: 0, width: self.view.width, height: self.view.height)
         horiV.clipsToBounds = true
+        horiV.model = self.model
         horiV.updateWebFrame()
         return horiV
     }()
@@ -1121,7 +1130,6 @@ class KlineDealController: UIViewController,UITableViewDelegate, UITableViewData
     
     lazy var btnHorizon: UIButton = {
         let btn = UIButton(type: .custom)
-//        btn.setTitle("横", for: .normal)
         btn.setImage(UIImage.init(named: "CoinDetailExpand"), for: .normal)
         btn.setTitleColor(UIColor.white, for: .selected)
         btn.setTitleColor(UIColor.hexColor("979797"), for: .normal)
