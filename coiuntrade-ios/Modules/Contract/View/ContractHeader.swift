@@ -41,6 +41,8 @@ class ContractHeader: UIView {
 
     func updateSecondHeight(){
         kLineView.updateSecondHeight()
+        
+        
     }
     
     required init?(coder: NSCoder) {
